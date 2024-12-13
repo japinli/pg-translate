@@ -1,0 +1,41 @@
+site_name: PostgreSQL 翻译
+
+theme:
+  name: material
+  font:
+    text: Noto Serif SC
+  language: zh
+  features:
+    - content.code.copy
+  palette:
+    #- media: "(prefers-color-scheme)"
+    #  toggle:
+    #    icon: material/brightness-auto
+    #    name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: drak)"
+      scheme: slate
+      #primary: grey
+      #accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - blog:
+      blog_dir: .
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
