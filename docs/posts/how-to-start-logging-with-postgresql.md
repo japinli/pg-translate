@@ -756,7 +756,7 @@ LOG: Ok, generating html report...
 
 当您在浏览器中打开 HTML 文件时，您应该会看到如下报告：
 
-![](img/pgbadger.avif)
+![](imgs/pgbadger.avif)
 
 请参阅 [PgBadger 网站上的示例](https://pgbadger.darold.net/examples/report/index.html)及其[文档](https://pgbadger.darold.net/documentation.html)以了解更多详细信息。
 

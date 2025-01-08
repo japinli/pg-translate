@@ -1,9 +1,9 @@
 ---
-draft: true
 slug: solving-the-overlap-query-problem-in-postgresql
 date: 2024-11-14
 categories:
   - Overlaps
+  - Performance
 ---
 
 # 解决 PostgreSQL 中的重叠查询问题
@@ -61,7 +61,7 @@ CREATE INDEX ON patrons USING BTREE(enter, leave);
 
 第一次尝试这样的查询时，您可能会在一张纸上画线，并看到两个间隔可以重叠的四种不同方式（见下图）。这使得查询相当复杂，但我们可以用一些小技巧来简化它。只有两种方式可以让区间不重叠。如果我们编写不重叠的查询，然后用 `NOT` 进行反转，我们就会得到所需的结果。
 
-![](img/overlaps-interval.png)
+![](imgs/overlaps-interval.png)
 
 例如，用于查找 `interval1` 和 `interval2` 所有不重叠情况的 `WHERE` 子句如下所示：
 
@@ -94,7 +94,7 @@ WHERE date1.start <= date2.end
 
 顾名思义，B-树索引包含索引列上的值的分支结构；遍历树可以找到特定值或任何连续的值范围。对于复合（多列）索引，仅当第一列具有多个相等值时，第二列才会影响排序：第二列充当“决胜局”的作用。第三列仅当第二列出现平局时才起作用，依此类推。这在视觉上更容易理解。参见下图：
 
-![](img/overlap-b-tree.png)
+![](imgs/overlap-b-tree.png)
 
 请注意，与简单的单列索引相比，我们的复合索引（开始日期+结束日期）对行排序的影响很小。而且，这两种方法都不能让我们快速找到所有重叠值。与我们的查询范围重叠的行（以绿色显示）没有按顺序排列，因此我们的索引没有帮助。必须扫描整个表。
 
