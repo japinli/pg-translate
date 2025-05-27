@@ -29,13 +29,15 @@ extra_css:
   - stylesheets/extra.css
 
 plugins:
+  - glightbox
   - search
   - blog:
       blog_dir: .
 
 markdown_extensions:
   - admonition
-  - pymdownx.details
-  - pymdownx.superfences
   - attr_list
   - md_in_html
+  - pymdownx.blocks.caption
+  - pymdownx.details
+  - pymdownx.superfences

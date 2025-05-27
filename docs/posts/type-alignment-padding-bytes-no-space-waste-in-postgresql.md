@@ -14,6 +14,8 @@ categories:
 -->
 
 ![](imgs/type-alignment-padding-bytes-no-space-waste-in-postgresql/pg-type-alignment-padding-bytes.png)
+/// caption
+///
 
 节省存储空间不应该是 PostgreSQL 数据库的首要目标。很多时候，为了节省空间，人们往往会牺牲性能。但也没有理由无谓地浪费空间。因此，我们有必要掌握 PostgreSQL 中的数据类型对齐和填充字节的概念。
 
