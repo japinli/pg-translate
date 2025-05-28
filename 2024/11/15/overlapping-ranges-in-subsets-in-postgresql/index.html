@@ -1,0 +1,1200 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../14/solving-the-overlap-query-problem-in-postgresql/">
+      
+      
+        <link rel="next" href="../../../12/13/substring-%E5%87%BD%E6%95%B0%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>PostgreSQL 中子集的重叠范围 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#postgresql" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PostgreSQL 中子集的重叠范围
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      适合所有场合
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      防止表行重叠
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      修改范围语句
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gist" class="md-nav__link">
+    <span class="md-ellipsis">
+      提升绩效：GiST 的不同版本
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gist-b-" class="md-nav__link">
+    <span class="md-ellipsis">
+      为 GiST 添加 B-树 支持
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      附录一：示例 SQL 脚本
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2024-11-15 00:00:00+00:00" class="md-ellipsis">2024年11月15日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/overlaps/">Overlaps</a>, 
+                              <a href="../../../../category/performance/">Performance</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 4 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="postgresql">PostgreSQL 中子集的重叠范围</h1>
+<p>在<a href="../../14/solving-the-overlap-query-problem-in-postgresql/">本系列的第一部分</a>中，我们探讨了重叠查询及其伴随的问题，以及提高其性能的方法。最后，我们根据时间戳范围定义了一个重叠查询，这使我们能够使用一种称为 GiST 的新索引类型，从而大大加快了这些类型的查询速度。在第二部分中，我们将进一步提高重叠查询性能，但首先让我们介绍一下范围类型的一些其他特性。</p>
+<!-- more -->
+
+<h2 id="_1">适合所有场合</h2>
+<p>我们的第一部分查询使用了以下 <code>WHERE</code> 子句：</p>
+<div class="highlight"><pre><span></span><code><span class="k">WHERE</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">o</span><span class="p">.</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">end_time</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">enter</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">leave</span><span class="p">)</span>
+</code></pre></div>
+<p><code>tsrange()</code> 函数返回时间戳范围。但重叠查询不仅限于时间戳；它们也可以由整数和浮点值构建。想象一个跟踪某种商品的最低和最高价格的套利数据库。如果您希望找到所有为五花肉支付 1.35 美元到 1.65 美元之间的顾客，您可以使用 <code>numrange()</code> 函数构建一个数字范围；查询 <code>WHERE</code> 子句将是：</p>
+<div class="highlight"><pre><span></span><code><span class="k">WHERE</span><span class="w"> </span><span class="n">numrange</span><span class="p">(</span><span class="n">min_price</span><span class="p">,</span><span class="w"> </span><span class="n">max_price</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">numrange</span><span class="p">(</span><span class="mi">1</span><span class="p">.</span><span class="mi">35</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">.</span><span class="mi">65</span><span class="p">)</span>
+</code></pre></div>
+<p>对于 <code>integer</code> 和 <code>bigint</code> 范围，有函数 <code>int4range()</code> 和 <code>int8range()</code>。可以使用 <code>daterange()</code> 构建仅限日期的时间间隔（不含时间），甚至还有一个 <code>tstzrange()</code> 函数，它会考虑涉及的时间戳值的时区。（但请记住：与使用“带时区”定义的数据库列一样，实际时区不会被存储，只是一个标志，表示时间戳应该在客户端转换为本地时间。）</p>
+<h2 id="_2">防止表行重叠</h2>
+<p>重叠查询的常见需求是防止包含重叠时间段的行插入到表中，类似于 <code>UNIQUE</code> 限制。例如，会议室预订列表不允许同时预订，或者播客时间表只允许在任何给定时间播放一集。此类业务逻辑可以使用触发器或存储过程在数据库中完成。但使用 GiST 则是一种更简单的方法。</p>
+<p>为了说明这一点，请考虑即将播出的播客剧集的基本表，其中包含剧集标识符和两个时间戳，指示计划的开始和停止时间。为了防止任何两行在时间上重叠，请使用 <code>exclude</code> 运算符，如下所示：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">episodes</span><span class="w"> </span><span class="p">(</span>
+<span class="w"> </span><span class="n">episode_id</span><span class="w">       </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w"> </span><span class="n">planned_start</span><span class="w">  </span><span class="k">TIMESTAMP</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">WITHOUT</span><span class="w"> </span><span class="k">TIME</span><span class="w"> </span><span class="k">ZONE</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w"> </span><span class="n">planned_end</span><span class="w">   </span><span class="k">TIMESTAMP</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">WITHOUT</span><span class="w"> </span><span class="k">TIME</span><span class="w"> </span><span class="k">ZONE</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w"> </span><span class="n">EXCLUDE</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="n">gist</span><span class="w"> </span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">planned_start</span><span class="p">,</span><span class="w"> </span><span class="n">planned_end</span><span class="p">)</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>我们可以通过尝试插入两行相互冲突的行来验证这一点：</p>
+<div class="highlight"><pre><span></span><code><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">episodes</span><span class="w"> </span>
+<span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/5/2024 08:00 am&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/5/2024 09:30 am&#39;</span><span class="p">);</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">episodes</span><span class="w"> </span>
+<span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/5/2024 09:00 am&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/5/2024 11:00 am&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>由于第 2 集在第 1 集结束之前开始，第二次插入失败，错误如下：</p>
+<div class="highlight"><pre><span></span><code>ERROR: conflicting key value violates exclusion constraint …
+</code></pre></div>
+<p>与 <code>UNIQUE</code> 约束一样，<code>EXCLUDE</code> 创建底层索引来支持约束，这意味着您不需要在表定义后面添加单独的索引创建语句。</p>
+<div class="admonition note">
+<p class="admonition-title">注意</p>
+<p>实际业务场景可能需要额外的标准来确定重叠错误。例如，酒店预订系统需要房间号，或者上面的播客示例可能支持多个频道，每个频道同时广播。这可以在 EXCLUDE 语句中完成，但它需要向 GiST 添加 B 树支持，如下所述。</p>
+</div>
+<h2 id="_3">修改范围语句</h2>
+<p>在<a href="../../14/solving-the-overlap-query-problem-in-postgresql/">第一部分</a>中，我们注意到标准 SQL 语义将范围定义为“半开放”——范围的起点是包含在范围内，但终点是不包含在范围内（Joe Celko 在<a href="https://www.red-gate.com/simple-talk/databases/sql-server/t-sql-programming-sql-server/between-the-two-of-us/">本文</a>中提到了半高开、半低开的理念）。这种存储范围的方法简化了存储，但往往会使重叠计算复杂化：下午 5 点结束的间隔不会与在同一时间开始的间隔重叠（尽管它会与早一毫秒开始的间隔重叠）。所有范围构造函数（<code>tsrange()</code>、<code>daterange()</code> 等）都遵循相同的语义。</p>
+<p>您可以轻松地覆盖此行为。构造函数接受第三个参数：一个两字符的字符串，表示每个端点的状态：方括号表示包含；圆括号表示不包含。</p>
+<p>下表列出了各种可能性：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>()</code></td>
+<td>两个端点均不包含</td>
+</tr>
+<tr>
+<td><code>[]</code></td>
+<td>两个端点均包含</td>
+</tr>
+<tr>
+<td><code>[)</code></td>
+<td>包含起点，不包含终点，默认</td>
+</tr>
+<tr>
+<td><code>(]</code></td>
+<td>不包含起点，包含终点</td>
+</tr>
+</tbody>
+</table>
+<p>为了说明，让我们回到播客剧集的示例。在其中，我们使用默认的“半开放”语义创建了“无重叠”约束。这使得新剧集的开始时间与前一剧集的结束时间完全相同。例如，即使一集的结束与另一集的开始相匹配，以下两行也不重叠：</p>
+<div class="highlight"><pre><span></span><code><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">episodes</span><span class="w"> </span>
+<span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/6/2024 08:00 am&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/6/2024 09:00 am&#39;</span><span class="p">);</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">episodes</span><span class="w"> </span>
+<span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/6/2024 09:00 am&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;11/6/2024 10:00 am&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>但是在创建约束时，如果我们指示 <code>tsrange()</code> 函数包含两个端点，如下所示：</p>
+<div class="highlight"><pre><span></span><code><span class="n">EXCLUDE</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="n">gist</span><span class="w"> </span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">planned_start</span><span class="p">,</span><span class="w"> </span><span class="n">planned_end</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;[]&#39;</span><span class="p">)</span>
+<span class="w">                    </span><span class="k">WITH</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="p">)</span>
+</code></pre></div>
+<p>由于该限制，第二次 <code>INSERT</code> 将失败。</p>
+<p><a class="glightbox" href="../../../../imgs/overlapping-ranges-in-subsets-in-postgresql/overlap-ii-half-open.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/overlapping-ranges-in-subsets-in-postgresql/overlap-ii-half-open.png" /></a></p>
+<h2 id="gist">提升绩效：GiST 的不同版本</h2>
+<p>现在让我们回到我们的重点：提高性能。GiST 索引类型是通用重叠查询的不错选择。但通常，时间序列数据在一系列日期内分布相当均匀，没有大量重叠值。一个很好的例子是我们第一部分中的样本数据：它随机分布在 20 年的间隔内，并且任何给定的行仅与表中其他行的一小部分重叠。对于这样的数据，空间分区的 GiST 索引可以产生更好的性能。PostgreSQL 也支持这种类型的索引 - 称为 SP-GiST。</p>
+<p>创建 SP-GiST 索引的语句与常规 GiST 几乎相同。使用第一部分中的 <code>patrons</code> 示例表，我们创建了一个正常的 GiST 索引，如下所示：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">PATRONS</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="n">gist</span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">enter</span><span class="p">,</span><span class="w"> </span><span class="n">leave</span><span class="p">));</span>
+</code></pre></div>
+<p>对于 SP-GiST，我们将索引类型更改为 <code>spgist</code> 并指定一个操作符类：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="n">spgist</span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">enter</span><span class="p">,</span><span class="w"> </span><span class="n">leave</span><span class="p">)</span><span class="w"> </span><span class="n">range_ops</span><span class="p">);</span>
+</code></pre></div>
+<p>这里，内置的 <code>range_ops</code> 运算符（不出所料）意味着我们要对索引执行范围操作。</p>
+<p><a class="glightbox" href="../../../../imgs/overlapping-ranges-in-subsets-in-postgresql/overlap-ii-sp-gist.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/overlapping-ranges-in-subsets-in-postgresql/overlap-ii-sp-gist.png" /></a></p>
+<p>我们可以期望空间分区版本的 GiST 的性能提高多少？在我们的第一部分测试数据中，用 SP-GiST 替换旧的 GiST 索引将查询时间从 5.2 秒减少到 3.7 秒——提升了 30%。在最佳情况下（例如不允许重叠行的表），预期增幅可能高达 50%。但在重叠程度较高的数据集上，SP-GiST 的表现可能会更差。用您自己的数据进行测试！</p>
+<h2 id="gist-b-">为 GiST 添加 B-树 支持</h2>
+<p>通常，重叠查询具有超出范围本身的标准。餐厅预订不会与其他预订重叠，除非是同一张桌子；如果病人不同，医院可以在同一时间段安排多次就诊，等等。</p>
+<p>回到第一部分中的示例代码，其中使用了一个博物馆的顾客和安全中断的示例：如果数据包括多个站点会怎样？现在，只有当顾客和停电发生在同一地点时，才会出现“重叠”。这会如何改变情况？</p>
+<p>让我们重新创建表，这次添加一个 <code>location_id</code> 外键：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">patron_id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">GENERATED</span><span class="w"> </span><span class="n">ALWAYS</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">IDENTITY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">location_id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">enter</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">leave</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">location_id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">start_time</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">end_time</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+<span class="c1">--Note, the code to load these tables is located in the Appendix</span>
+</code></pre></div>
+<p>我们对重叠值的查询现在有一个连接条件，而不是 <code>CROSS JOIN</code>：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="n">p</span>
+<span class="k">INNER</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="n">o</span><span class="w"> </span>
+<span class="w">          </span><span class="k">ON</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">location_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">location_id</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">o</span><span class="p">.</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">end_time</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">enter</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">leave</span><span class="p">);</span>
+</code></pre></div>
+<p>由于这是随机生成的数据，您可能会得到更多或更少的行，因此您的性能可能会有所不同。</p>
+<p>如果您使用我们在第一部分中创建的相同 GiST 索引运行此查询，则性能将会从糟糕到极度糟糕，具体取决于存在多少个不同的位置值。我们假设有 20 个可能的位置，看看是否可以再次提高性能。</p>
+<p>对于像这样的双条件查询，我们的本能是多列索引，每个条件一个。并且，由于时间戳范围比 <code>location_id</code> 更具体（从技术角度来说，它的基数更高），它应该是第一个索引的列。这促使我们尝试这个命令：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span>
+<span class="k">USING</span><span class="w"> </span><span class="n">GIST</span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">enter</span><span class="p">,</span><span class="n">leave</span><span class="p">),</span><span class="w"> </span><span class="n">location_id</span><span class="p">);</span><span class="w"> </span>
+</code></pre></div>
+<p>我们的直觉是正确的，但是在 PostgreSQL 的默认配置下，该语句显示错误。</p>
+<div class="highlight"><pre><span></span><code>ERROR: data type integer has no default operator class for access method &quot;gist&quot;
+</code></pre></div>
+<p>尽管 GiST 索引功能强大，但它不支持简单的操作，例如字符串、日期或（在本例中）整数的直接比较。幸运的是，PostgreSQL 附带了一个扩展，可将 B-树类型的操作添加到 GiST。我们需要做的就是安装它：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="n">EXTENSION</span><span class="w"> </span><span class="n">btree_gist</span><span class="p">;</span>
+</code></pre></div>
+<p>现在我们可以毫无错误地创建上述索引，并且在发生中断时创建类似的索引：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span>
+<span class="w">    </span><span class="k">USING</span><span class="w"> </span><span class="n">GIST</span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">end_time</span><span class="p">),</span><span class="w"> </span><span class="n">location_id</span><span class="p">);</span>
+</code></pre></div>
+<p>这不仅恢复了第一部分中缺少 <code>location_id</code> 的查询的性能：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="n">p</span>
+<span class="w">        </span><span class="k">CROSS</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="n">o</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">o</span><span class="p">.</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">end_time</span><span class="p">)</span><span class="w"> </span>
+<span class="w">             </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">enter</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">leave</span><span class="p">);</span>
+</code></pre></div>
+<p>但是稍微好一些（在我的测试系统上为 4.9 秒，同样使用随机生成的数据，如您在完整脚本中所看到的，用于填充测试表、创建索引并执行下面附录一中的查询。</p>
+<div class="admonition note">
+<p class="admonition-title">注意</p>
+<p>我们的 <code>location_id</code> 是一个低基数值（只有 20 个可能的值，因为我使用 <code>TRUNC(RANDOM()*20)</code>来生成它们）。</p>
+<p>如果有更多位置（例如 100,000+），则索引可能更适合以 <code>location_id</code> 作为第一列；但在这种情况下，性能可能不会比默认的 B-树索引更好，因为这些索引就是为此场景设计的。</p>
+<p><strong>用您自己的数据进行测试！</strong></p>
+</div>
+<h2 id="sql">附录一：示例 SQL 脚本</h2>
+<p>以下是一些可用于本文中示例代码的有用脚本：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- create tables</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="n">patron_id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">GENERATED</span><span class="w"> </span><span class="n">ALWAYS</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">IDENTITY</span><span class="p">,</span>
+<span class="w">        </span><span class="n">location_id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">enter</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">leave</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="n">location_id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">start_time</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">end_time</span><span class="w"> </span><span class="k">Timestamp</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">);</span>
+</code></pre></div>
+<p>为了完成某些示例，特别是那些时间很重要的示例，您可以使用此脚本来生成数据。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- create 1M random patrons and 250K random outages</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="p">(</span><span class="n">location_id</span><span class="p">,</span><span class="w"> </span><span class="n">enter</span><span class="p">,</span><span class="n">leave</span><span class="p">)</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">TRUNC</span><span class="p">(</span><span class="n">RANDOM</span><span class="p">()</span><span class="o">*</span><span class="mi">20</span><span class="p">),</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span>
+<span class="w">       </span><span class="n">r</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;1 minute&#39;</span><span class="p">::</span><span class="nb">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(</span><span class="n">RANDOM</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">60</span><span class="p">)</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="s1">&#39;1 minute&#39;</span><span class="p">::</span><span class="nb">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span>
+<span class="w">                </span><span class="n">ROUND</span><span class="p">(</span><span class="n">RANDOM</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">15768000</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">r</span><span class="w"> </span>
+<span class="w">      </span><span class="k">FROM</span><span class="w"> </span><span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1000000</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">sub</span><span class="p">);</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">TRUNC</span><span class="p">(</span><span class="n">RANDOM</span><span class="p">()</span><span class="o">*</span><span class="mi">20</span><span class="p">),</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span>
+<span class="w">       </span><span class="n">r</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;1 minute&#39;</span><span class="p">::</span><span class="nb">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(</span><span class="n">RANDOM</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">20</span><span class="p">)</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="s1">&#39;1 minute&#39;</span><span class="p">::</span><span class="nb">INTERVAL</span><span class="w"> </span><span class="o">*</span>
+<span class="w">                    </span><span class="n">ROUND</span><span class="p">(</span><span class="n">RANDOM</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">15768000</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">r</span><span class="w"> </span>
+<span class="w">      </span><span class="k">FROM</span><span class="w"> </span><span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">250000</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">sub</span><span class="p">);</span>
+<span class="c1">-- delete malformed entries from randomly generated data.</span>
+<span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">enter</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">leave</span><span class="p">;</span>
+<span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">start_time</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">end_time</span><span class="p">;</span>
+</code></pre></div>
+<p>下面将创建本文中提到的索引。它们需要 <code>btree_gist</code> 扩展才能执行。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- create indexes</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span>
+<span class="w">  </span><span class="k">USING</span><span class="w"> </span><span class="n">gist</span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">enter</span><span class="p">,</span><span class="n">leave</span><span class="p">),</span><span class="w"> </span><span class="n">location_id</span><span class="p">);</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span>
+<span class="w">  </span><span class="k">USING</span><span class="w"> </span><span class="n">gist</span><span class="p">(</span><span class="n">tsrange</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">end_time</span><span class="p">),</span><span class="w"> </span><span class="n">location_id</span><span class="p">);</span>
+<span class="c1">-- run test query</span>
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="k">ANALYZE</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">patrons</span><span class="w"> </span><span class="n">p</span>
+<span class="k">INNER</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">outages</span><span class="w"> </span><span class="n">o</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">location_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">location_id</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">o</span><span class="p">.</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">end_time</span><span class="p">)</span><span class="w"> </span>
+<span class="w">             </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">tsrange</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">enter</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">leave</span><span class="p">);</span>
+</code></pre></div>
+<blockquote>
+<p>作者：Lee Asher<br>
+原文：<a href="https://www.red-gate.com/simple-talk/databases/postgresql/overlapping-ranges-in-subsets-in-postgresql/">https://www.red-gate.com/simple-talk/databases/postgresql/overlapping-ranges-in-subsets-in-postgresql/</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

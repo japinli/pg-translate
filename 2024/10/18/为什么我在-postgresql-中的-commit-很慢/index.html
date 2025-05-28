@@ -1,0 +1,1106 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../06/postgresql-%E6%97%A5%E5%BF%97%E6%82%A8%E9%9C%80%E8%A6%81%E7%9F%A5%E9%81%93%E7%9A%84%E4%B8%80%E5%88%87/">
+      
+      
+        <link rel="next" href="../../../11/14/solving-the-overlap-query-problem-in-postgresql/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>为什么我在 PostgreSQL 中的 COMMIT 很慢？ - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#postgresql-commit" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              为什么我在 PostgreSQL 中的 COMMIT 很慢？
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql-commit_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      PostgreSQL 中的基本 COMMIT 活动
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      COMMIT 缓慢的最常见原因：磁盘问题
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      阅读源码以了解更多信息
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      延迟约束和触发器导致 COMMIT 缓慢
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      游标保持导致 COMMIT 缓慢
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      同步复制导致 COMMIT 缓慢
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      第三方扩展导致 COMMIT 缓慢
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      总结
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2024-10-18 00:00:00+00:00" class="md-ellipsis">2024年10月18日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/commit/">Commit</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 2 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="postgresql-commit">为什么我在 PostgreSQL 中的 COMMIT 很慢？</h1>
+<p>有时，我们的某个客户查看数据库中最耗时的语句（使用 <code>pg_stat_statements</code> 或 <code>pgBadger</code>），并发现 <code>COMMIT</code> 排名靠前。通常，<code>COMMIT</code> 是 PostgreSQL 中非常快的语句，因此值得研究。在本文中，我将探讨 <code>COMMIT</code> 缓慢的可能原因并讨论您可以采取的措施。</p>
+<!-- more -->
+
+<h2 id="postgresql-commit_1">PostgreSQL 中的基本 <code>COMMIT</code> 活动</h2>
+<p>缓慢的 <code>COMMIT</code> 是一个令人惊讶的观察，因为在 PostgreSQL 中提交事务是一个非常简单的活动。大多数情况下，<code>COMMIT</code> 要做的就是：</p>
+<ul>
+<li>将提交日志中事务的两位设置为 <code>TRANSACTION_STATUS_COMMITTED (0b01)</code>（保存在 <code>pg_xact</code> 中）。</li>
+<li>如果 <code>track_commit_timestamp</code> 设置为 <code>on</code>，则记录提交时间戳（保存在 <code>pg_commit_ts</code> 中）。</li>
+<li>将预写日志 (WAL)（保存在 <code>pg_wal</code> 中）刷新到磁盘，除非 <code>synchronous_commit</code> 设置为 <code>off</code>。</li>
+</ul>
+<p>请注意，由于 PostgreSQL 的多版本架构，<code>COMMIT</code> 和 <code>ROLLBACK</code> 通常都是非常快的操作：它们都不需要触碰表，它们只需要在提交日志中注册事务的状态。</p>
+<h2 id="commit"><code>COMMIT</code> 缓慢的最常见原因：磁盘问题</h2>
+<p>从上面可以清楚地看出，导致速度缓慢的一个潜在原因是磁盘 I/O。毕竟，将 WAL 刷新到磁盘会导致 I/O 请求。因此，您应该首先检查磁盘是否有问题或负载过大：</p>
+<ul>
+<li>在 Linux 上，您可以使用 <code>vmstat 1</code> 或 <code>sar -p 1</code> 等命令来测量等待 I/O 的 CPU 时间百分比（<code>vmstat</code> 中的 <code>wa</code> 和 <code>sar</code> 中的 <code>%iowait</code>）。</li>
+<li>使用 NAS 时，您应该检查 TCP 网络是否过载。</li>
+<li>如果存储是共享 SAN 或 NAS，则磁盘可能会与其他机器共享，您应该检查存储系统上是否存在争用。</li>
+<li>磁盘故障、其他硬件问题或操作系统问题可能会导致间歇性性能问题。检查内核日志以获取消息。</li>
+</ul>
+<p>如果我们可以排除磁盘问题是导致 <code>COMMIT</code> 缓慢的原因，我们就必须进行进一步调查。</p>
+<h2 id="_1">阅读源码以了解更多信息</h2>
+<p>如果我们想了解事务 <code>COMMIT</code> 期间发生了什么，最简单的方法就是阅读源代码。许多人没有意识到开源的真正力量：您不必猜测或购买软件供应商的支持，而是可以亲自见证。PostgreSQL 源代码写得很好并且有充足的文档，许多部分不需要专家 C 技能就可以理解。相关代码在 <a href="https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/access/transam/xact.c"><code>src/backend/access/transam/xact.c</code></a> 文件中的 <code>CommitTransaction()</code> 函数中。</p>
+<p>在特殊情况下，<code>COMMIT</code> 速度慢的原因有多种，比如许多并发 <code>NOTIFY</code> 语句的争用（您可以从 <a href="https://www.postgresql.org/docs/current/view-pg-locks.html"><code>pg_locks</code></a> 中数据库 <code>0</code> 上的锁来诊断这种情况）。然而，罪魁祸首通常是下面描述的三种情况之一。</p>
+<h2 id="commit_1">延迟约束和触发器导致 <code>COMMIT</code> 缓慢</h2>
+<p>通常，PostgreSQL 将检查约束作为修改受约束表的语句的一部分。通过延迟约束 <code>deferred constraints</code>，PostgreSQL 会在事务结束时执行约束检查。一个用例是将数据插入具有循环外键约束的表中：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">department</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">department_id</span><span class="w"> </span><span class="nb">bigint</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">  </span><span class="n">name</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">manager</span><span class="w"> </span><span class="nb">bigint</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">employee</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">employee_id</span><span class="w"> </span><span class="nb">bigint</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">  </span><span class="n">name</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">department_id</span><span class="w"> </span><span class="nb">bigint</span>
+<span class="w">    </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">department</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+
+<span class="c1">-- deferred foreign key</span>
+<span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">department</span>
+<span class="w">  </span><span class="k">ADD</span><span class="w"> </span><span class="k">FOREIGN</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">manager</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">employee</span>
+<span class="w">    </span><span class="k">DEFERRABLE</span><span class="w"> </span><span class="k">INITIALLY</span><span class="w"> </span><span class="k">DEFERRED</span><span class="p">;</span>
+</code></pre></div>
+<p>延迟外键可以轻松创建新部门：</p>
+<div class="highlight"><pre><span></span><code><span class="k">BEGIN</span><span class="p">;</span>
+
+<span class="c1">-- won&#39;t raise a foreign key violation yet</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">department</span><span class="w"> </span><span class="p">(</span><span class="n">department_id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">manager</span><span class="p">)</span>
+<span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;Flower Picking&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">123</span><span class="p">);</span>
+
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">employee</span><span class="w"> </span><span class="p">(</span><span class="n">employee_id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">department_id</span><span class="p">)</span>
+<span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="mi">123</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;John Wurzelrupfer&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+
+<span class="c1">-- deferred constraint is valid now</span>
+<span class="k">COMMIT</span><span class="p">;</span>
+</code></pre></div>
+<p>由于 PostgreSQL 在提交时检查延迟约束，它们可能会减慢 <code>COMMIT</code> 处理速度。通常，检查约束非常快——它是一个索引查找。然而，许多这样的检查会在较大的事务中累积，并且集体执行时间会大大减慢 <code>COMMIT</code> 的速度。</p>
+<p>PostgreSQL 还具有可延迟的约束触发器 <code>constraint triggers</code>，并且可以像延迟约束一样减慢 <code>COMMIT</code> 的速度。有关约束触发器的用例的进一步讨论，请参阅<a href="https://www.cybertec-postgresql.com/en/triggers-to-enforce-constraints/">本文</a>。</p>
+<p>如果您能确定延迟约束或触发器是导致 <code>COMMIT</code> 缓慢的原因，那么可能就没问题，无需担心。毕竟，您必须在某个时候检查这些约束。</p>
+<h2 id="commit_2">游标保持导致 <code>COMMIT</code> 缓慢</h2>
+<p>游标 <code>cursor</code> 允许客户端分块获取查询结果集，这可以简化处理并避免客户端内存不足。但是，常规游标只能存在于数据库事务的上下文中。因此，当涉及用户交互时，您不能使用游标：游标持有的快照会阻碍 <code>VACUUM</code> 的进度并导致表膨胀和更严重的问题。此外，在事务持续期间持有的 <code>ACCESS SHARE</code> 锁将导致并发 <code>ALTER TABLE</code> 或 <code>TRUNCATE</code> 出现问题。</p>
+<p>为了避免受限于事务，可以使用 <code>WITH HOLD</code> 游标。这样的游标可以比创建它的事务存活更长时间，例如，对于<a href="https://www.cybertec-postgresql.com/en/pagination-problem-total-result-count/#paginate-cursor">实现分页很有用</a>。PostgreSQL 通过在<strong>提交时具体化结果集</strong>来实现 <code>WITH HOLD</code> 游标。如果游标后面的查询很昂贵，那么 <code>COMMIT</code> 可能会变得非常慢。另外，完成后一定不要忘记关闭这些游标，否则物化结果集将占用服务器资源，直到数据库会话结束。</p>
+<p>如果您可以将 <code>WITH HOLD</code> 游标确定为 <code>COMMIT</code> 缓慢的原因，那么您可以通过调整游标定义中的查询来提高运行速度，从而改善这种情况。由于 PostgreSQL 没有优化游标中的查询来加快计算完整结果集的速度，因此有时将 <a href="https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-CURSOR-TUPLE-FRACTION"><code>cursor_tuple_fraction</code></a> 设置为 <code>1.0</code> 可以帮助加快 <code>COMMIT</code> 的处理。</p>
+<h2 id="commit_3">同步复制导致 <code>COMMIT</code> 缓慢</h2>
+<p><a href="https://www.postgresql.org/docs/current/warm-standby.html#STREAMING-REPLICATION">物理流复制</a>和<a href="https://www.postgresql.org/docs/current/logical-replication.html">逻辑复制</a>默认都是异步的。如果您使用复制来实现高可用性，并且不想冒丢失已提交事务的风险，则可以使用同步复制。使用同步复制，<code>COMMIT</code> 时的操作顺序为：</p>
+<ul>
+<li>将 <code>COMMIT</code> 记录写入 WAL 并刷新（这是实际的持久提交）。</li>
+<li>等待同步备用数据库报告已获取所有 WAL 信息。</li>
+<li>使事务在主服务器上可见。</li>
+<li>向客户报告成功。</li>
+</ul>
+<p>如果主服务器和同步备服务器之间的网络延迟较高，则 <code>COMMIT</code> 将需要很长时间。您可以通过检查 <a href="https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW"><code>pg_stat_activity</code></a> 来诊断是否存在频繁或长时间的 <code>SyncRep</code> 等待事件。通常，您只想在网络延迟较低的机器（即物理上靠近的机器）之间使用同步复制。</p>
+<h2 id="commit_4">第三方扩展导致 <code>COMMIT</code> 缓慢</h2>
+<p>PostgreSQL 最出色的特性之一是它的可扩展性。它允许您编写与 PostgreSQL 核心交互的扩展，而无需修改服务器代码。第三方代码可以“挂载”到 PostgreSQL 中来修改其行为。除了许多其他选项之外，您还可以使用 C 函数 <code>RegisterXactCallback()</code> 来注册 PostgreSQL 在 <code>COMMIT</code> 时执行的回调。因此，如果您寻找 <code>COMMIT</code> 缓慢的原因，您还应该查看数据库中安装的扩展。例如，在远程数据源实现事务处理的外部数据包装器可能希望在 PostgreSQL 提交本地事务时提交远程事务。然后，远程端的高网络延迟或缓慢的事务处理将会减慢 PostgreSQL 的 <code>COMMIT</code> 速度。</p>
+<h2 id="_2">总结</h2>
+<p>通过查看源代码，我们可以很容易地找到导致 <code>COMMIT</code> 缓慢的可能原因：除了磁盘问题的明显原因之外，您还应该考虑延迟约束、<code>WITH HOLD</code> 游标和同步复制等可能的原因。</p>
+<blockquote>
+<p>作者：Laurenz Albe<br>
+原文：<a href="https://www.cybertec-postgresql.com/en/why-do-i-have-a-slow-commit-in-postgresql/">https://www.cybertec-postgresql.com/en/why-do-i-have-a-slow-commit-in-postgresql/</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

@@ -1,0 +1,1227 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../../04/25/type-alignment-padding-bytes-no-space-waste-in-postgresql/">
+      
+      
+        <link rel="next" href="../../27/archive-postgres-partitions-to-iceberg/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>处理 Aurora Postgres 中的 LWLock:LockManager 等待事件 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aurora-postgres-lwlocklockmanager" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              处理 Aurora Postgres 中的 LWLock:LockManager 等待事件
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      什么是轻量级锁
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      轻量级锁与锁管理器
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fast-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fast-Path 示例
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      大量索引
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      锁管理器
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lwlocklockmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      触发 LWLock:LockManager 等待事件
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      这在生产系统中如何发生
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lockmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      如何处理 LockManager 等待事件
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2025-05-23 00:00:00+00:00" class="md-ellipsis">2025年5月23日</time>
+                      </div>
+                    </li>
+                    
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 4 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="aurora-postgres-lwlocklockmanager">处理 Aurora Postgres 中的 LWLock:LockManager 等待事件</h1>
+<h2 id="_1">什么是轻量级锁</h2>
+<p>PostgreSQL 通过轻量级锁（Lightweight Locks, LWLocks）控制对共享内存中的数据结构的访问。与表锁或行锁不同，轻量级锁通常持有很短的时间，并且不受正在进行的事务的约束。作为数据库客户端，您无法直接控制何时获取这些锁。它们在后台运行，并且由 PostgreSQL 自身管理。</p>
+<p>本文将探讨 PostgreSQL 的锁管理器、轻量级锁、快速路径锁（fast-path locking）以及如何对抗 <code>LWLock:LockManager</code> 等待事件。</p>
+<!-- more -->
+
+<h2 id="_2">轻量级锁与锁管理器</h2>
+<p>每当您在 PostgreSQL 中与关系（表或索引）交互时，系统都会获取该关系的锁。这些锁通常被称为重量级锁。这似乎有悖常理，但即使是只读查询也会获取 PostgreSQL 需要跟踪的锁。</p>
+<p>为了加速锁获取，PostgreSQL 使用一种称为快速路径锁（<a href="https://github.com/postgres/postgres/blob/4766438aa317e85f3d762847b2b009f91f530b6f/src/backend/storage/lmgr/README#L257">fast-path locking</a>）的机制。此技术用于使用“弱”关系锁（<code>AccessShareLock</code>、<code>RowShareLock</code> 或 <code>RowExclusiveLock</code>）的场景，并且仅当系统可以快速验证不存在冲突锁时才使用。</p>
+<p>每个事务允许获取 <a href="https://github.com/postgres/postgres/blob/8afff7d6db25ab52f155d8a220f692d7d6d84152/src/include/storage/proc.h#L86">16 个快速路径锁</a>。</p>
+<div class="highlight"><pre><span></span><code><span class="cm">/*</span>
+<span class="cm"> * We allow a small number of &quot;weak&quot; relation locks (AccessShareLock,</span>
+<span class="cm"> * RowShareLock, RowExclusiveLock) to be recorded in the PGPROC structure</span>
+<span class="cm"> * rather than the main lock table.  This eases contention on the lock</span>
+<span class="cm"> * manager LWLocks.  See storage/lmgr/README for additional details.</span>
+<span class="cm"> */</span>
+<span class="cp">#define     FP_LOCK_SLOTS_PER_BACKEND 16</span>
+</code></pre></div>
+<p>一旦超出限制，后续的锁获取就必须通过锁管理器。根据工作负载的类型，这可能会造成锁获取争用，从而降低工作负载的速度。</p>
+<h2 id="fast-path">Fast-Path 示例</h2>
+<p>为了更好地理解快速路径，亲自体验一下会有所帮助。<code>pg_locks</code> 视图显示活动进程持有的锁的信息。当通过快速路径获取锁时，<code>fastpath</code> 列将被设置为 <code>true</code>。</p>
+<p>让我们进行以下实验。在一个数据库会话中，我们将启动一个事务，然后在不同的表上执行多个选择查询。这样，我们将在每个关系上获取一个锁。同时，我们打开另一个数据库会话，并观察 <code>pg_locks</code> 表。</p>
+<p>启动一个新事务并执行 <code>select</code> 语句。针对此场景，我创建了多个空表。</p>
+<div class="highlight"><span class="filename">Session 1</span><pre><span></span><code><span class="k">begin</span><span class="p">;</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test1</span><span class="p">;</span>
+</code></pre></div>
+<p>在第二个数据库会话中，查看 <code>pg_locks</code>；</p>
+<p><div class="highlight"><span class="filename">Session 2</span><pre><span></span><code><span class="k">select</span><span class="w"> </span><span class="n">relation</span><span class="p">::</span><span class="n">regclass</span><span class="p">,</span><span class="w"> </span><span class="n">locktype</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="k">mode</span><span class="p">,</span><span class="w"> </span><span class="n">fastpath</span>
+<span class="k">from</span><span class="w"> </span><span class="n">pg_locks</span>
+<span class="k">where</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">pg_backend_pid</span><span class="p">();</span><span class="w">  </span><span class="c1">-- 过滤掉此查询获取的锁</span>
+</code></pre></div>
+进程 ID 51 对应的是第一个数据库会话中的后端进程。我们可以看到两个锁。<code>AccessShareLock</code> 是由 <code>test1</code> 表上的 <code>select</code> 语句获取的。而 <code>ExclusiveLock</code> 是针对虚拟事务 ID 的锁。</p>
+<div class="highlight"><pre><span></span><code> relation |  locktype  | pid |      mode       | fastpath 
+----------+------------+-----+-----------------+----------
+ test1    | relation   |  51 | AccessShareLock | t
+          | virtualxid |  51 | ExclusiveLock   | t
+(2 rows)
+</code></pre></div>
+<p>在第一个数据库会话中，如果我们继续对尚未触及的关系执行额外的选择语句，我们可以看到进程 51 获取的锁数量将会增加。</p>
+<p><div class="highlight"><span class="filename">Session 1</span><pre><span></span><code><span class="c1">-- 第一个数据库会话中</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test2</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code> relation |  locktype  | pid |      mode       | fastpath 
+----------+------------+-----+-----------------+----------
+ test2    | relation   |  51 | AccessShareLock | t
+ test1    | relation   |  51 | AccessShareLock | t
+          | virtualxid |  51 | ExclusiveLock   | t
+(3 rows)
+</code></pre></div></p>
+<p>快速路径不仅适用于 <code>select</code> 语句，还适用于 <code>insert</code>、<code>update</code> 和 <code>delete</code>。</p>
+<div class="highlight"><span class="filename">Session 1</span><pre><span></span><code><span class="c1">-- 第一个数据库会话中</span>
+<span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">test1</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;hello&#39;</span><span class="p">);</span>
+<span class="k">update</span><span class="w"> </span><span class="n">test2</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;hello&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>现在我们可以看到又出现了两个关系锁。<code>RowExclusiveLocks</code> 是在插入、更新或执行删除操作时获取的。</p>
+<div class="highlight"><pre><span></span><code> relation |   locktype    | pid |       mode       | fastpath 
+----------+---------------+-----+------------------+----------
+ test2    | relation      |  51 | AccessShareLock  | t
+ test2    | relation      |  51 | RowExclusiveLock | t
+ test1    | relation      |  51 | AccessShareLock  | t
+ test1    | relation      |  51 | RowExclusiveLock | t
+          | virtualxid    |  51 | ExclusiveLock    | t
+          | transactionid |  51 | ExclusiveLock    | f
+(6 rows)
+</code></pre></div>
+<p>到目前为止，所有操作都已获取快速路径锁。如果我们继续在关系上获取新的锁，最终将达到每个事务 16 个快速路径锁的限制。一旦超出限制，任何新锁的 <code>fastpath</code> 列都会被设置为 <code>false</code>。因此，新的锁获取必须通过锁管理器。</p>
+<div class="highlight"><pre><span></span><code> relation |   locktype    | pid |       mode       | fastpath 
+----------+---------------+-----+------------------+----------
+...
+ test17   | relation      |  51 | AccessShareLock  | f
+(21 rows)
+</code></pre></div>
+<h2 id="_3">大量索引</h2>
+<p>在前面的例子中，我们专注于涉及没有任何索引的单个表的操作。然而，在实际场景中，索引在日常查询中起着至关重要的作用。因此，索引也需要加锁。为了演示这一点，我们创建一个包含多个索引的表。</p>
+<div class="highlight"><pre><span></span><code><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">many_indexes</span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w"> </span><span class="n">bigserial</span><span class="w"> </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="p">,</span>
+<span class="w">  </span><span class="n">a</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">b</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="k">c</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">d</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">e</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">f</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="k">g</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">h</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">i</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">j</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">k</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">l</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">m</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">n</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">o</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">p</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+<span class="w">  </span><span class="n">q</span><span class="w"> </span><span class="nb">char</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>假设该表的每一列都已建立索引。让我们对该表执行查询操作，看看哪些锁会被获取。</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">begin</span><span class="p">;</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">many_indexes</span><span class="p">;</span>
+
+<span class="c1">-- in another db session, let&#39;s run</span>
+<span class="k">select</span><span class="w"> </span><span class="n">relation</span><span class="p">::</span><span class="n">regclass</span><span class="p">,</span><span class="w"> </span><span class="n">locktype</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="k">mode</span><span class="p">,</span><span class="w"> </span><span class="n">fastpath</span>
+<span class="k">from</span><span class="w"> </span><span class="n">pg_locks</span><span class="w"> </span>
+<span class="k">where</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">pg_backend_pid</span><span class="p">();</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>     relation      |  locktype  | pid |      mode       | fastpath 
+-------------------+------------+-----+-----------------+----------
+ n_idx             | relation   |  51 | AccessShareLock | t
+ m_idx             | relation   |  51 | AccessShareLock | t
+ l_idx             | relation   |  51 | AccessShareLock | t
+ k_idx             | relation   |  51 | AccessShareLock | t
+ j_idx             | relation   |  51 | AccessShareLock | t
+ i_idx             | relation   |  51 | AccessShareLock | t
+ h_idx             | relation   |  51 | AccessShareLock | t
+ g_idx             | relation   |  51 | AccessShareLock | t
+ f_idx             | relation   |  51 | AccessShareLock | t
+ e_idx             | relation   |  51 | AccessShareLock | t
+ d_idx             | relation   |  51 | AccessShareLock | t
+ c_idx             | relation   |  51 | AccessShareLock | t
+ b_idx             | relation   |  51 | AccessShareLock | t
+ a_idx             | relation   |  51 | AccessShareLock | t
+ many_indexes_pkey | relation   |  51 | AccessShareLock | t
+ many_indexes      | relation   |  51 | AccessShareLock | t
+                   | virtualxid |  51 | ExclusiveLock   | t
+ p_idx             | relation   |  51 | AccessShareLock | f
+ o_idx             | relation   |  51 | AccessShareLock | f
+ q_idx             | relation   |  51 | AccessShareLock | f
+(20 rows)
+</code></pre></div></p>
+<p>除了表本身之外，所有索引都获取了 <code>AccessShareLock</code> 锁。请注意，对于几个索引，<code>fastpath</code> 设置为 <code>false</code>。通过对具有大量索引的单个表进行查询，我们能够达到每个事务 16 个快速路径锁的限制。</p>
+<p>到目前为止，我们专注于选择单个表，并观察到索引也计入快速路径锁限制。然而，在关系数据库中，一种常见的访问模式是连接多个表。在连接操作期间，每个涉及的关系都会被加锁，包括所有表及其关联的索引。</p>
+<h2 id="_4">锁管理器</h2>
+<p>当无法使用快速路径时，需要将锁记录在<a href="https://github.com/postgres/postgres/blob/master/src/backend/storage/lmgr/lock.c">共享内存哈希表中</a>。在 PostgreSQL 中，哈希表被分为 <a href="https://github.com/postgres/postgres/blob/4766438aa317e85f3d762847b2b009f91f530b6f/src/include/storage/lwlock.h#L96-L97">16 个分区</a>。</p>
+<div class="highlight"><pre><span></span><code><span class="cm">/* Number of partitions the shared lock tables are divided into */</span>
+<span class="cp">#define LOG2_NUM_LOCK_PARTITIONS  4</span>
+<span class="cp">#define NUM_LOCK_PARTITIONS  (1 &lt;&lt; LOG2_NUM_LOCK_PARTITIONS)</span>
+</code></pre></div>
+<p>这样可以实现更高的并发性。只需要锁定获取到的锁所在的分区，而不是整个哈希表。</p>
+<figure>
+<p><a class="glightbox" href="../../../../imgs/hash-table-lock-partitions.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Lock manager's hash table is divided into 16 partitions to improve concurrency" src="../../../../imgs/hash-table-lock-partitions.png" /></a></p>
+<figcaption>
+<p>锁管理器的哈希表被分成 16 个分区，以提高并发性</p>
+</figcaption>
+</figure>
+<p>然而，在高流量数据库中，频繁获取非快速路径锁，即使是 16 个分区也可能成为瓶颈。这正是 <code>LWLock:LockManager</code> 等待事件所指示的：一个进程正在尝试访问共享哈希表中的分区，但无法继续，因为该分区已被锁定。</p>
+<h2 id="lwlocklockmanager">触发 LWLock:LockManager 等待事件</h2>
+<p>现在我们已经对锁管理器和快速路径锁有了基本的了解，接下来我们再做一个实验。我们创建一个场景，来观察 <code>LWLock:LockManager</code> 等待事件的实际运作。对于这种情况，我创建了一个 Aurora Postgres 15 实例和一个充当数据库客户端的 EC2 实例。我使用了相当大的实例（EC2 实例为 c5.12xlarge，Aurora Postgres 实例为 db.r6i.4xlarge）。我的目标是运行许多并发线程并并行处理大量数据库查询。由于 <code>LWLock:LockManager</code> 等待事件是锁管理器争用的标志，我希望高并行度可以更容易地重现该问题。</p>
+<figure>
+<p><a class="glightbox" href="../../../../imgs/lwlock-lockmanager-example.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Test scenario setup. EC2 instance running pgbench will execute sql queries against an Aurora Postgres database." src="../../../../imgs/lwlock-lockmanager-example.png" /></a></p>
+<figcaption>
+<p>测试场景设置。运行 <code>pgbench</code> 的 EC2 实例将针对 Aurora Postgres 数据库执行 SQL 查询。</p>
+</figcaption>
+</figure>
+<p>该数据库包含 20 个表，分别命名为 <code>test1</code>、<code>test2</code>，依此类推，直至 <code>test20</code>。就本测试而言，表结构并不重要。所有表均为空。</p>
+<p>我们将使用 <code>pgbench</code> 运行以下 SQL 脚本。</p>
+<div class="highlight"><pre><span></span><code><span class="k">begin</span><span class="p">;</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test1</span><span class="p">;</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test2</span><span class="p">;</span>
+<span class="p">...</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test20</span><span class="p">;</span>
+<span class="k">commit</span><span class="p">;</span>
+</code></pre></div>
+<p>它执行一个事务，在此期间所有表都会被选中。我们之前了解到，每个事务有 16 个快速路径锁。获取超过 16 个锁应该会导致必须通过锁管理器获取一些锁的情况。</p>
+<p>测试过程中，<code>pgbench</code> 会运行 240 秒，创建 40 个线程，800 个数据库连接，这些线程会反复执行 SQL 脚本，模拟高并发的负载。</p>
+<div class="highlight"><pre><span></span><code>pgbench<span class="w"> </span>-f<span class="w"> </span>test.sql<span class="w"> </span>-T<span class="w"> </span><span class="m">240</span><span class="w"> </span>-c<span class="w"> </span><span class="m">800</span><span class="w"> </span>-j<span class="w"> </span><span class="m">40</span><span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-h<span class="w"> </span>database-2-instance-1.cky0tsfnwec5.eu-central-1.rds.amazonaws.com<span class="w"> </span>postgres
+</code></pre></div>
+<p>实验结束后查看 RDS Performance Insights，我们可以清楚地看到 <code>LWLock:LockManager</code> 等待事件的存在。</p>
+<figure>
+<p><a class="glightbox" href="../../../../imgs/lwlock-lockmanager-test.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/lwlock-lockmanager-test.png" /></a></p>
+<figcaption>
+<p>LWLock:LockManager 等待事件以紫色表示。最大 vCPU 数量为 16。</p>
+</figcaption>
+</figure>
+<p>为了确保我们对快速路径锁定和锁管理器的理解是正确的，让我们将测试脚本中的选择语句的数量减少到 16 个以下。</p>
+<div class="highlight"><pre><span></span><code><span class="k">begin</span><span class="p">;</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test1</span><span class="p">;</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test2</span><span class="p">;</span>
+<span class="p">...</span>
+<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">test14</span><span class="p">;</span>
+<span class="k">commit</span><span class="p">;</span>
+</code></pre></div>
+<p>这应该可以确保始终使用快速路径锁定。重新运行测试时，我期望 <code>LWLock:LockManager</code> 等待事件应该会消失，因为不再使用锁管理器来跟踪锁获取。</p>
+<figure>
+<p><a class="glightbox" href="../../../../imgs/test-with-fast-path-locking.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/test-with-fast-path-locking.png" /></a></p>
+<figcaption>
+<p>仅使用快速路径锁定时不再有 LWLockManager 等待事件</p>
+</figcaption>
+</figure>
+<p>正如预期的那样，<code>LWLock:LockManager</code> 等待事件已经消失。</p>
+<h2 id="_5">这在生产系统中如何发生</h2>
+<p>如果您的应用程序突然遇到 <code>LWLock:LockManager</code> 等待事件，导致其速度变慢，那么最好检查一下应用程序代码中的最近更改。也许经常执行的代码路径已被修改，导致它获取额外的锁。虽然一些额外的锁乍一听可能并不危险，但如果频繁执行的事务开始获取更多非快速路径锁，这可能会给锁管理器带来压力并产生争用。</p>
+<p>PostgreSQL 中一个常见的策略是按时间段对大型表进行分区。例如，<code>orders</code> 表可能会按月细分。PostgreSQL 中的分区本质上是一个具有自己索引的单独表。因此，必须扫描多个分区的查询也将获取更多锁，这可能会<a href="https://www.kylehailey.com/post/postgres-partition-pains-lockmanager-waits">导致 <code>LockManager</code> 等待事件</a>。</p>
+<p><code>LockManager</code> 等待事件也可能由流量突然激增触发。应用程序可能拥有稳定的非快速路径锁获取基线，这不会导致任何问题。但是当传入流量增加时，<code>LockManager</code> 可能会突然达到极限，并且开始出现明显的等待事件。</p>
+<h2 id="lockmanager">如何处理 LockManager 等待事件</h2>
+<p>没有万能的解决方案，因为每个工作负载都是独一无二的。不过，以下是一些可以考虑的策略：</p>
+<ul>
+<li><strong>控制事务范围：</strong>随着应用程序的增长，单个事务中执行的工作量通常会增加。请考虑是否可以简化某些事务或缩小其范围，以最大限度地减少锁争用。</li>
+<li><strong>监控 ORM 行为：</strong>对象关系映射 (ORM) 库可能会通过不必要地连接多个表来过度获取数据。请检查 ORM 生成的查询模式，并尽可能进行优化。</li>
+<li><strong>优化表分区：</strong>如果使用表分区，请谨慎管理分区的大小和数量。确保查询使用分区键，以避免扫描多个分区。</li>
+<li><strong>实现客户端缓存：</strong>在客户端缓存查询结果可以减少重复数据库查询和锁获取的需要，从而降低 <code>LockManager</code> 等待事件的可能性。</li>
+<li><strong>读写分离：</strong>在多个只读实例之间分配查询负载可减少每个实例的 <code>LockManager</code> 负载。</li>
+<li><strong>检查索引：</strong>定期检查您的索引并删除任何未使用的索引，以减少不必要的锁定开销。</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">译者注</p>
+<p>在即将发布的 PostgreSQL 18 中已经对这部分进行了优化，其核型部分在 <a href="https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=c4d5cb71d229095a39fda1121a75ee40e6069a2a">c4d5cb71d</a>。</p>
+<p>它通过将固定大小的快速路径锁数组替换为动态大小的数组，优化 PostgreSQL 在高锁需求场景下的性能，减少对共享锁表的依赖，从而降低锁竞争和性能开销。该提交移除硬编码的 16 个锁限制，改为在数据库启动时根据 <code>max_locks_per_transaction</code> 参数动态计算快速路径锁数组的大小。新机制允许快速路径锁的数量远超原来的 16 个（上限为 1024 个锁组，即 16k 个锁），从而支持需要大量锁的工作负载，如复杂查询或分区表操作。</p>
+</div>
+<blockquote>
+<p>作者：Indrek Ots<br>
+原文：<a href="https://blog.indrek.io/articles/dealing-with-lwlock-lockmanager-wait-events-in-aurora-postgres/">https://blog.indrek.io/articles/dealing-with-lwlock-lockmanager-wait-events-in-aurora-postgres/</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

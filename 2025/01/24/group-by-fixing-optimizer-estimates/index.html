@@ -1,0 +1,1160 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../20/anatomy-of-table-level-locks-in-postgresql/">
+      
+      
+        <link rel="next" href="../anatomy-of-locks-reduce/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>GROUP BY: 修复优化器估计值 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#group-by" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              GROUP BY: 修复优化器估计值
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql" class="md-nav__link">
+    <span class="md-ellipsis">
+      在 PostgreSQL 中填充示例数据
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      优化器统计是什么意思？
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      当列相互依赖时
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      创建统计数据：修正估计值
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      最后 ...
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2025-01-24 00:00:00+00:00" class="md-ellipsis">2025年1月24日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/aggregation/">Aggregation</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 3 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="group-by">GROUP BY: 修复优化器估计值</h1>
+<p>如果您使用 PostgreSQL 进行分析或大规模聚合，您可能会注意到规划器偶尔会对行数做出错误的估计。虽然这对于小规模的聚合来说不是问题，但对于具有许多不同维度的大规模聚合来说，这确实是个问题。</p>
+<p>简而言之：<code>GROUP BY</code> 语句包含的列越多，优化器高估行数的可能性就越大。</p>
+<p>本文解释了如何在 PostgreSQL 中处理这个问题。</p>
+<!-- more -->
+
+<h2 id="postgresql">在 PostgreSQL 中填充示例数据</h2>
+<p>对于这个例子，我创建了一个包含几个整数值的小表：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">t_sample</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">a</span><span class="w">   </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">b</span><span class="w">   </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="k">c</span><span class="w">   </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">d</span><span class="w">   </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">e</span><span class="w">   </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">f</span><span class="w">   </span><span class="nb">int</span><span class="w">     </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">random</span><span class="p">()</span><span class="o">*</span><span class="mi">100000</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>正如我们所看到的，我们有 5 个整数列（<code>a-e</code>）以及一个包含默认值的列。向该表添加 1000 万行数据的最简单方法是使用 <code>generate_series</code> 函数：</p>
+<div class="highlight"><pre><span></span><code><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">t_sample</span><span class="w"> </span>
+<span class="w">    </span><span class="k">SELECT</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">11</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">13</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">14</span><span class="w"> </span>
+<span class="w">    </span><span class="k">FROM</span><span class="w"> </span><span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">10000000</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+</code></pre></div>
+<p>这里的关键点是我们的数据具有一些有趣的属性。每列只能包含一组固定的值（第一列有 10 个不同的值，第二列有 11 个不同的值，依此类推）。</p>
+<p>一旦数据加载完成，我将使用 <code>ANALYZE</code> 命令来创建新的优化器统计数据：</p>
+<div class="highlight"><pre><span></span><code><span class="k">ANALYZE</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_1">优化器统计是什么意思？</h2>
+<p>PostgreSQL 优化器如何工作？最根本的思想是列统计。对于每一列，PostgreSQL 都保存重要信息，例如不同值的数量、最常见的值、直方图等等：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">SELECT</span>
+<span class="w">    </span><span class="n">tablename</span><span class="p">,</span><span class="w"> </span><span class="n">attname</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">n_distinct</span><span class="p">,</span><span class="w"> </span><span class="n">most_common_vals</span><span class="w"> </span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">pg_stats</span><span class="w"> </span>
+<span class="k">WHERE</span>
+<span class="w">    </span><span class="n">tablename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;t_sample&#39;</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="n">attname</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;b&#39;</span><span class="p">);</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code> tablename | attname | n_distinct |     most_common_vals     
+-----------+---------+------------+--------------------------
+ t_sample  | b       |         11 | {9,6,7,5,0,8,10,1,4,3,2}
+ t_sample  | a       |         10 | {9,0,4,5,8,1,2,3,6,7}
+(2 rows)
+</code></pre></div></p>
+<p>请注意，此信息针对每一列进行存储。在正常情况下，autovacuum 将确保统计信息保持最新。</p>
+<h2 id="_2">当列相互依赖时</h2>
+<p>以下查询非常常见：我们想要确定每个组中有多少个条目。关键细节是 <code>GROUP BY</code> 子句包含五个维度。</p>
+<p>为了使示例更容易理解，我们首先禁用 PostgreSQL 中的并行查询。这不是针对 PostgreSQL 的一般性能建议，而仅仅是为了简化执行计划：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">SET</span><span class="w"> </span><span class="n">max_parallel_workers_per_gather</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="k">explain</span><span class="w"> </span><span class="k">analyze</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="p">,</span><span class="w"> </span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">t_sample</span><span class="w"> </span>
+<span class="w">    </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">        </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                               QUERY PLAN
+--------------------------------------------------------------------------
+ HashAggregate  (cost=982455.57..1102046.81 rows=240240 width=28) 
+    (actual time=1638.327..1784.077 rows=60060 loops=1)
+   Group Key: a, b, c, d, e
+   Planned Partitions: 4  Batches: 5  
+    Memory Usage: 8241kB  Disk Usage: 53072kB
+   -&gt;  Seq Scan on t_sample  (cost=0.00..163696.15 rows=10000115 width=20) 
+    (actual time=0.051..335.137 rows=10000000 loops=1)
+ Planning Time: 0.167 ms
+ Execution Time: 1787.892 ms
+(6 rows)
+</code></pre></div></p>
+<p>这里最引人注目的是什么？归结为两个数字：<code>240240</code> 和 <code>60060</code>。第一个数字表示优化器的估计——它假设将返回超过 200,000 行。但实际结果只有 60060 行。为什么会这样？原因是 <code>a</code>、<code>b</code>、<code>c</code>、<code>d</code>、<code>e</code> 的某些组合根本不存在。然而，PostgreSQL 并不知道这一点。请记住，优化器维护有关每列的统计信息 - 它并不知道所有这些实际排列。</p>
+<p>PostgreSQL 如何得出 <code>240240</code>？考虑以下计算：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">11</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">12</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">13</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">14</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code> ?column? 
+----------
+   240240
+(1 row)
+</code></pre></div></p>
+<p>PostgreSQL 只是简单地将每个维度中的元素数量相乘，这会导致高估（这通常比低估的问题更小）。</p>
+<h2 id="_3">创建统计数据：修正估计值</h2>
+<p>解决这些估计问题的方法是使用扩展统计信息。以下命令可用于解决该问题：</p>
+<p><div class="highlight"><pre><span></span><code><span class="gp">blog=#</span><span class="w"> </span><span class="kp">\h</span><span class="w"> </span><span class="ss">CREATE</span><span class="w"> </span><span class="ss">STATISTICS</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>Command:     CREATE STATISTICS
+Description: define extended statistics
+Syntax:
+CREATE STATISTICS [ [ IF NOT EXISTS ] statistics_name ]
+    ON ( expression )
+    FROM table_name
+
+CREATE STATISTICS [ [ IF NOT EXISTS ] statistics_name ]
+    [ ( statistics_kind [, ... ] ) ]
+    ON { column_name | ( expression ) }, { column_name | ( expression ) } [, ...]
+    FROM table_name
+
+URL: https://www.postgresql.org/docs/17/sql-createstatistics.html
+</code></pre></div></p>
+<p>在我们的例子中，我们需要 <code>CREATE STATISTICS</code> 的 <code>ndistinct</code> 选项：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">STATISTICS</span><span class="w"> </span><span class="n">mystats</span><span class="w"> </span><span class="p">(</span><span class="n">ndistinct</span><span class="p">)</span>
+<span class="k">ON</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="p">,</span><span class="w"> </span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="n">e</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">t_sample</span><span class="p">;</span>
+<span class="k">ANALYZE</span><span class="p">;</span>
+</code></pre></div>
+<p>这将创建排列的统计信息，而不仅仅是单个值和列的统计信息。当我们再次运行查询时，我们将看到估计值有了显着改善：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">explain</span><span class="w"> </span><span class="k">analyze</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="p">,</span><span class="w"> </span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">t_sample</span><span class="w"> </span>
+<span class="w">    </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">        </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                QUERY PLAN
+----------------------------------------------------------------------------
+ HashAggregate  (cost=313697.88..314288.34 rows=59046 width=28) 
+    (actual time=1587.681..1733.595 rows=60060 loops=1)
+   Group Key: a, b, c, d, e
+   Batches: 5  Memory Usage: 8241kB  Disk Usage: 53072kB
+   -&gt;  Seq Scan on t_sample  (cost=0.00..163696.15 rows=10000115 width=20) 
+    (actual time=0.060..309.344 rows=10000000 loops=1)
+ Planning Time: 0.623 ms
+ Execution Time: 1737.495 ms
+(6 rows)
+</code></pre></div></p>
+<p>哇，这太接近了：<code>59046</code> 与 <code>60060</code> —— PostgreSQL 是正确的。在这种情况下，它不会影响性能。然而，在现实世界中，修复统计数据可能会对速度和整体数据库效率产生巨大影响。</p>
+<p>问题可能自然而然地出现：优化器使用什么信息来得出如此准确的估计？答案如下：</p>
+<div class="highlight"><pre><span></span><code>blog=# \x
+Expanded display is on.
+blog=# SELECT * FROM pg_stats_ext;
+-[ RECORD 1 ]----------+----------------------------------------------------------------
+schemaname             | public
+tablename              | t_sample
+statistics_schemaname  | public
+statistics_name        | mystats
+statistics_owner       | hs
+attnames               | {a,b,c,d,e}
+exprs                  | 
+kinds                  | {d}
+inherited              | f
+n_distinct             | {&quot;1, 2&quot;: 110, &quot;1, 3&quot;: 60, &quot;1, 4&quot;: 130, &quot;1, 5&quot;: 70, 
+              &quot;2, 3&quot;: 132, &quot;2, 4&quot;: 143, &quot;2, 5&quot;: 154, &quot;3, 4&quot;: 156, 
+              &quot;3, 5&quot;: 84, &quot;4, 5&quot;: 182, &quot;1, 2, 3&quot;: 660, &quot;1, 2, 4&quot;: 1430, 
+              &quot;1, 2, 5&quot;: 770, &quot;1, 3, 4&quot;: 780, &quot;1, 3, 5&quot;: 420, 
+              &quot;1, 4, 5&quot;: 910, &quot;2, 3, 4&quot;: 1716, &quot;2, 3, 5&quot;: 924, 
+              &quot;2, 4, 5&quot;: 2002, &quot;3, 4, 5&quot;: 1092, &quot;1, 2, 3, 4&quot;: 8576, 
+              &quot;1, 2, 3, 5&quot;: 4621, &quot;1, 2, 4, 5&quot;: 10026, &quot;1, 3, 4, 5&quot;: 5457,  
+              &quot;2, 3, 4, 5&quot;: 11949, &quot;1, 2, 3, 4, 5&quot;: 59046}
+dependencies           | 
+most_common_vals       | 
+most_common_val_nulls  | 
+most_common_freqs      | 
+most_common_base_freqs | 
+</code></pre></div>
+<p><code>pg_stats_ext</code> 视图告诉我们 PostgreSQL 在这种情况下如何处理 <code>n_distinct</code> 列。</p>
+<h2 id="_4">最后 ...</h2>
+<p>优化查询和优化器通常都是值得探索的有趣话题。如果您想了解更多并深入挖掘，请考虑阅读我关于 <a href="https://www.cybertec-postgresql.com/en/how-the-postgresql-query-optimizer-works/">PostgreSQL 查询优化器工作原理</a>的文章。</p>
+<hr>
+
+<blockquote>
+<p>作者：Hans-Jürgen Schönig<br>
+原文：<a href="https://www.cybertec-postgresql.com/en/group-by-fixing-optimizer-estimates/">https://www.cybertec-postgresql.com/en/group-by-fixing-optimizer-estimates/</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

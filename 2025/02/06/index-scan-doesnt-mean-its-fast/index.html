@@ -1,0 +1,1265 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../../01/24/anatomy-of-locks-reduce/">
+      
+      
+        <link rel="next" href="../../../04/25/type-alignment-padding-bytes-no-space-waste-in-postgresql/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>索引扫描并不意味着高效 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              索引扫描并不意味着高效
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      留意过滤器删除的行
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      留意循环
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      索引列顺序非常重要
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="索引列顺序非常重要">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      即使仅对单个列进行过滤
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      根据多列进行筛选时的列顺序
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      总结
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2025-02-06 00:00:00+00:00" class="md-ellipsis">2025年2月6日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/">Index</a>, 
+                              <a href="../../../../category/performance/">Performance</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 6 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="_1">索引扫描并不意味着高效</h1>
+<p>我经常看到人们在查看执行计划时忽略的一个问题：他们的所有扫描都涉及到索引，因此他们认为查询可能已经尽可能快（或高效）了。</p>
+<p>大部分人都知道，如果<a href="https://www.pgmustard.com/docs/explain/seq-scan">顺序扫描</a>中有<a href="https://www.pgmustard.com/docs/explain/rows-removed-by-filter">大量的行被过滤掉</a>，则表明索引可以提供帮助。但是索引加快速度的原因同样适用于具有过滤更多行的其他扫描，其中过滤行更多的索引可以加快速度！虽然我们经常会看到索引过滤器显示 <code>Rows Removed by Filter</code>，但遗憾的是，有些情况 <code>EXPLAIN</code> 并不会报告（我们稍后会讲到）。</p>
+<p>在本文中，我们将通过几个示例以及一些需要注意的事项来说明如何加快速度。</p>
+<p>值得注意的是，还有其他方法可以进一步优化索引的使用。我们还通过 pgMustard 中的 <code>Index Efficiency</code> 提示重点介绍了一个这样的例子，即通过<a href="https://www.pgmustard.com/docs/explain/rows-removed-by-index-recheck">索引重新检查删除了大量行</a>。但这篇文章已经够长了，所以我们改天再讨论。</p>
+<!-- more -->
+
+<h2 id="_2">留意过滤器删除的行</h2>
+<p>让我们创建一个简单的示例表来演示：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span>
+<span class="w">   </span><span class="n">id</span><span class="w"> </span><span class="nb">bigint</span><span class="w"> </span><span class="k">GENERATED</span><span class="w"> </span><span class="n">ALWAYS</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">IDENTITY</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">   </span><span class="n">a</span><span class="w"> </span><span class="nb">smallint</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">   </span><span class="n">b</span><span class="w"> </span><span class="nb">smallint</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">);</span>
+
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">)</span>
+<span class="w">   </span><span class="k">SELECT</span><span class="w"> </span><span class="n">random</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="n">_000</span><span class="p">),</span><span class="w"> </span><span class="n">random</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="n">_000</span><span class="p">)</span><span class="w"> </span>
+<span class="w">   </span><span class="k">FROM</span><span class="w"> </span><span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="n">_000_000</span><span class="p">);</span>
+
+<span class="k">VACUUM</span><span class="w"> </span><span class="k">ANALYZE</span><span class="w"> </span><span class="n">example</span><span class="p">;</span>
+
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code> id |  a  |  b  
+----+-----+-----
+  1 | 803 | 627
+  2 | 978 | 702
+  3 |  15 | 506
+  4 | 966 | 335
+  5 | 247 | 172
+(5 rows)
+</code></pre></div>
+现在，我们总共有一百万行，其中一个是整数主键，还有两个额外的列 <code>a</code> 和 <code>b</code>，它们包含 1 到 1000 之间的随机整数。</p>
+<p>让我们看一下几个索引选项，用于优化基于 <code>a</code> 和 <code>b</code> 进行过滤的简单查询：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_a_idx</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.example  (cost=11.86..2542.34 rows=1 width=8) (actual time=4.024..4.489 rows=1 loops=1)
+   Output: id
+   Recheck Cond: (example.a = 42)
+   Filter: (example.b = 42)
+   Rows Removed by Filter: 1016
+   Heap Blocks: exact=925
+   Buffers: shared hit=928
+   -&gt;  Bitmap Index Scan on example_a_idx  (cost=0.00..11.86 rows=991 width=0) (actual time=0.407..0.407 rows=1017 loops=1)
+         Index Cond: (example.a = 42)
+         Buffers: shared hit=3
+ Planning Time: 0.143 ms
+ Execution Time: 4.538 ms
+</code></pre></div></p>
+<p>通过列 <code>a</code> 上的索引，PostgreSQL 选择执行位图索引扫描来查找 <code>a = 42</code> 的行，然后对包含这些行的页面进行位图堆扫描，仅筛选出 <code>b</code> 也等于 <code>42</code> 的行。</p>
+<p>虽然这总共只花费了大约 5 毫秒。我们可以看到过滤器删除了 1016 行，但最终只返回了 1 行——效率不高！</p>
+<p>另一个线索（感谢 <code>Buffers</code> 行）是 PostgreSQL 总共必须读取 928 个块（约 7MB），其中除 3 个块外，其余均来自 <code>Bitmap Heap Scan</code> 阶段。</p>
+<p>简单的索引扫描会比这个位图扫描更好吗？</p>
+<p>让我们尝试阻止位图扫描，然后再次运行查询：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">SET</span><span class="w"> </span><span class="n">enable_bitmapscan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">off</span><span class="p">;</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using example_a_idx on public.example  (cost=0.42..3655.99 rows=1 width=8) (actual time=1.438..1.682 rows=1 loops=1)
+   Output: id
+   Index Cond: (example.a = 42)
+   Filter: (example.b = 42)
+   Rows Removed by Filter: 1016
+   Buffers: shared hit=928
+ Settings: enable_bitmapscan = &#39;off&#39;
+ Planning Time: 0.144 ms
+ Execution Time: 1.706 ms
+</code></pre></div></p>
+<p>这更快，大约 2 毫秒，但我们仍然可以看到那 1016 行被过滤器删除。<code>Buffers</code> 还显示我们仍然需要读取 928 个块。所以这两者都是一个很好的迹象，表明我们可以做得更好...</p>
+<p>如果我们在 <code>b</code> 也有一个索引会怎么样？</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">RESET</span><span class="w"> </span><span class="n">enable_bitmapscan</span><span class="p">;</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_b_idx</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.example  (cost=24.00..28.01 rows=1 width=8) (actual time=0.674..0.676 rows=1 loops=1)
+   Output: id
+   Recheck Cond: ((example.a = 42) AND (example.b = 42))
+   Heap Blocks: exact=1
+   Buffers: shared hit=8
+   -&gt;  BitmapAnd  (cost=24.00..24.00 rows=1 width=0) (actual time=0.652..0.653 rows=0 loops=1)
+         Buffers: shared hit=7
+         -&gt;  Bitmap Index Scan on example_a_idx  (cost=0.00..11.86 rows=991 width=0) (actual time=0.259..0.259 rows=1017 loops=1)
+               Index Cond: (example.a = 42)
+               Buffers: shared hit=3
+         -&gt;  Bitmap Index Scan on example_b_idx  (cost=0.00..11.89 rows=995 width=0) (actual time=0.208..0.208 rows=991 loops=1)
+               Index Cond: (example.b = 42)
+               Buffers: shared hit=4
+ Planning Time: 0.143 ms
+ Execution Time: 0.706 ms
+</code></pre></div></p>
+<p>现在，时间已降至 1 毫秒以下，但关键的是 <code>Buffers</code> 数量大幅减少（8 个块，即 64KB）！这一次，PostgreSQL 扫描了每个索引（单独），然后对每个结果中的匹配行进行 AND 运算，以查找同时匹配两个条件的行。</p>
+<p>虽然不再有明确的 <code>Rows Removed by Filter</code> 字段，但那些位图索引扫描仍然会读取一些未返回的索引条目。让我们看看是否可以做得更好，通过在 <code>(a, b)</code> 上尝试复合索引，将我们需要的条目在单个索引结构中彼此相邻地排序：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_a_b_idx</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using example_a_b_idx on public.example  (cost=0.42..8.45 rows=1 width=8) (actual time=0.032..0.033 rows=1 loops=1)
+   Output: id
+   Index Cond: ((example.a = 42) AND (example.b = 42))
+   Buffers: shared hit=4
+ Planning Time: 0.160 ms
+ Execution Time: 0.058 ms
+</code></pre></div></p>
+<p>我们总共减少了 4 次缓冲区命中，而且速度快了很多！最后一次尝试，为了好玩，让我们尝试在 (a, b, id) 上使用复合索引，以尝试仅进行索引扫描：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_a_b_id_idx</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                               QUERY PLAN                                                               
+----------------------------------------------------------------------------------------------------------------------------------------
+ Index Only Scan using example_a_b_id_idx on public.example  (cost=0.42..4.44 rows=1 width=8) (actual time=0.029..0.031 rows=1 loops=1)
+   Output: id
+   Index Cond: ((example.a = 42) AND (example.b = 42))
+   Heap Fetches: 0
+   Buffers: shared hit=4
+ Planning Time: 0.115 ms
+ Execution Time: 0.046 ms
+</code></pre></div></p>
+<p>尽管避免了访问堆，但我们仍然总共读取了 4 个块（可能是因为索引稍大一些），因此查询速度并没有快多少。有趣！</p>
+<p>从第一个查询计划（已经非常快并且使用索引）开始，我们仍然设法在执行时间和读取的块数量上实现了几个数量级的改进，主要是通过尝试获取我们需要的准确数据而无需读取和过滤行。</p>
+<p>因此，总结一下，无论扫描类型如何，如果 PostgreSQL 需要读取比其需要更多的数据，而又不得不将其过滤掉，那么可能存在一种更有效的方法。留意被过滤器删除的行。</p>
+<p>作为参考，我已经在 pgMustard 中审查并发布了<a href="https://app.pgmustard.com/#/optimizations/8712d769-23e6-4d32-8468-92a20a266ad5">这五个查询计划</a>。</p>
+<p><a class="glightbox" href="../../../../imgs/index-scan-doesnt-mean-its-fast/example-1-plans.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/index-scan-doesnt-mean-its-fast/example-1-plans.jpg" /></a></p>
+<p>上述原始查询计划的总时间和总缓冲区，以及 4 次优化尝试。</p>
+<h2 id="_3">留意循环</h2>
+<p>重要的是，<code>Rows Removed by Filter</code> 字段是每个循环的平均值，四舍五入到最接近的整数。在上面的例子中，我们总是有 <code>loops=1</code>，所以这并不相关，但在其他查询中，特别是涉及嵌套循环的查询中，它可能是一个重要的因素。</p>
+<p>假设您看到 <code>actual [...] rows=1 loops=10000</code> 和 <code>Rows Removed by Filter: 5</code>。这意味着大约有 10k 行被返回，但为了实现这一点还需要读取和过滤另外 50k 行。5 比 1 已经不是一个很好的效率比，但是当乘以 10k 时，节省时间的潜力就变得非常有趣！</p>
+<p>因此，如果您只看到通过过滤器删除的行数很少，但循环数很高，那么可能仍然有很大的改进机会（通过使用更好的索引）。</p>
+<h2 id="_4">索引列顺序非常重要</h2>
+<p>目前，截止版本 17，PostgreSQL 依然没有实现 <code>Index Skip Scan</code> 扫描（尽管已经有<a href="https://www.postgresql.org/message-id/flat/CAH2-Wzmn1YsLzOGgjAQZdn1STSG_y8qP__vggTaPAYXJP%2BG4bw%40mail.gmail.com">这方面的尝试</a>）。因此，btree 索引中的列顺序对于性能极为重要。</p>
+<h3 id="_5">即使仅对单个列进行过滤</h3>
+<p>一个常见的例子是 <code>(a, b)</code> 上的索引不能有效地用于仅对 <code>b</code> 进行过滤的查询。为了演示，让我们删除仅在 <code>b</code> 上创建的索引，并阻止序列扫描：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">DROP</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_b_idx</span><span class="p">;</span>
+
+<span class="k">SET</span><span class="w"> </span><span class="n">enable_seqscan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">off</span><span class="p">;</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.example  (cost=17132.67..19669.35 rows=995 width=8) (actual time=38.616..39.629 rows=991 loops=1)
+   Output: id
+   Recheck Cond: (example.b = 42)
+   Heap Blocks: exact=909
+   Buffers: shared hit=3308
+   -&gt;  Bitmap Index Scan on example_a_b_idx  (cost=0.00..17132.42 rows=995 width=0) (actual time=38.443..38.443 rows=991 loops=1)
+         Index Cond: (example.b = 42)
+         Buffers: shared hit=2399
+ Settings: enable_seqscan = &#39;off&#39;
+ Planning Time: 0.304 ms
+ Execution Time: 39.736 ms
+</code></pre></div></p>
+<p>它确实使用了我们的 <code>example_a_b_idx</code> 索引，但耗时将近 40 毫秒，总共读取了 3308 个块（约 26MB）。</p>
+<p>让我们尝试添加一个顺序为 <code>(b, a)</code> 的索引，以查看其对于相同查询的效率如何：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">RESET</span><span class="w"> </span><span class="n">enable_seqscan</span><span class="p">;</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_b_a_idx</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">);</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.example  (cost=20.14..2556.81 rows=995 width=8) (actual time=0.649..3.212 rows=991 loops=1)
+   Output: id
+   Recheck Cond: (example.b = 42)
+   Heap Blocks: exact=909
+   Buffers: shared hit=915
+   -&gt;  Bitmap Index Scan on example_b_a_idx  (cost=0.00..19.89 rows=995 width=0) (actual time=0.393..0.394 rows=991 loops=1)
+         Index Cond: (example.b = 42)
+         Buffers: shared hit=6
+ Planning Time: 0.232 ms
+ Execution Time: 3.406 ms
+</code></pre></div></p>
+<p>这花费了不到 4 毫秒的时间，总共读取了 915 个块（约 7MB）——好多了！</p>
+<p>遗憾的是，PostgreSQL 没有在上面效率较低的计划中报告任何 <code>Rows Removed by Filter</code>，尽管这实际上是位图索引扫描期间发生的情况。我们目前也无法从 <code>Index Cond</code> 中判断它是否被有效使用，但执行时间、成本和缓冲区都提供了很好的线索。</p>
+<h3 id="_6">根据多列进行筛选时的列顺序</h3>
+<p>对于根据索引中的所有条件进行筛选的查询，列顺序也非常重要。</p>
+<p>一个很好的例子是，如果其中一个过滤器是范围条件。为了演示，让我们尝试一个查询，我们的新索引 <code>(b, a)</code> 应该可以很好地满足该查询：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.example  (cost=5.44..362.73 rows=99 width=8) (actual time=0.128..0.502 rows=116 loops=1)
+   Output: id
+   Recheck Cond: ((example.b = 42) AND (example.a &lt; 100))
+   Heap Blocks: exact=115
+   Buffers: shared hit=118
+   -&gt;  Bitmap Index Scan on example_b_a_idx  (cost=0.00..5.42 rows=99 width=0) (actual time=0.073..0.074 rows=116 loops=1)
+         Index Cond: ((example.b = 42) AND (example.a &lt; 100))
+         Buffers: shared hit=3
+ Settings: enable_seqscan = &#39;off&#39;
+ Planning Time: 0.304 ms
+ Execution Time: 0.577 ms
+</code></pre></div></p>
+<p>尽管它返回了 116 行，但它在 1 毫秒内运行并读取了 118 个块（约 1MB）。</p>
+<p>让我们删除 <code>(b, a)</code> 上的索引并阻止顺序扫描，以查看 <code>(a, b)</code> 上的索引如何有效地处理相同查询：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">DROP</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">example_b_a_idx</span><span class="p">;</span>
+
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="p">(</span><span class="k">ANALYZE</span><span class="p">,</span><span class="w"> </span><span class="n">BUFFERS</span><span class="p">,</span><span class="w"> </span><span class="k">VERBOSE</span><span class="p">,</span><span class="w"> </span><span class="n">SETTINGS</span><span class="p">)</span><span class="w"> </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">example</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">输出</span><pre><span></span><code>                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.example  (cost=1955.74..2313.03 rows=99 width=8) (actual time=4.721..5.123 rows=116 loops=1)
+   Output: id
+   Recheck Cond: ((example.a &lt; 100) AND (example.b = 42))
+   Heap Blocks: exact=115
+   Buffers: shared hit=355
+   -&gt;  Bitmap Index Scan on example_a_b_idx  (cost=0.00..1955.71 rows=99 width=0) (actual time=4.623..4.624 rows=116 loops=1)
+         Index Cond: ((example.a &lt; 100) AND (example.b = 42))
+         Buffers: shared hit=240
+ Planning Time: 0.305 ms
+ Execution Time: 5.200 ms
+</code></pre></div></p>
+<p>这花费了 5 毫秒多一点的时间，并读取了 355 个块（约 3MB）来满足相同的查询。</p>
+<p>根据数据分布和其他因素（例如 <code>LIMIT</code> 子句），这种差异可能会变得更加极端，因此密切关注索引中列的顺序非常重要！</p>
+<p>向 <code>EXPLAIN</code> 添加更多信息以帮助发现这些问题是 PostgreSQL 社区<a href="https://commitfest.postgresql.org/48/5063/">积极开展</a>的另一个领域，因此我希望它在不久的将来会得到改进。Query Doctor 团队在最近有关 <a href="https://querydoctor.com/blog/postgresql-explain-quirks">EXPLAIN 怪癖</a>的文章中很好地介绍了这个特定主题。</p>
+<h2 id="_7">总结</h2>
+<p>虽然我们还没有讨论索引扫描对于给定查询效率低下的所有方式，但我们已经涵盖了我经常看到的最常见的情况。</p>
+<p>我至少希望您现在能够对查询计划中需要注意的事项有更多的想法，以帮助诊断这些类型的低效率：</p>
+<ol>
+<li>过滤器删除了大量行，即使在索引扫描类型中也是如此</li>
+<li>循环次数高，乘以过滤器删除的行数</li>
+<li>缓冲区数量较多，尤其是与返回的行相比</li>
+<li>索引中列的顺序，以及是否适合查询</li>
+</ol>
+<p>但是，如果您只从这篇博文中学到一件事，我希望那就是，仅仅因为您看到了 <code>Index Scan</code> 这个词，并不意味着扫描速度尽可能快！</p>
+<hr>
+<blockquote>
+<p>作者：Michael Christofides<br>
+原文：<a href="https://www.pgmustard.com/blog/index-scan-doesnt-mean-its-fast">https://www.pgmustard.com/blog/index-scan-doesnt-mean-its-fast</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

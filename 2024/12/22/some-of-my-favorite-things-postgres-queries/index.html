@@ -1,0 +1,1606 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../13/postgresql-%E4%B8%AD-bgwriter_lru_multiplier-%E5%92%8C-checkpoint_completion_target-%E7%9A%84%E9%87%8D%E8%A6%81%E6%80%A7/">
+      
+      
+        <link rel="next" href="../../23/sql-query-optimization-guide/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>我最喜欢的一些东西 - Postgres 查询 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#-postgres" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              我最喜欢的一些东西 - Postgres 查询
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#top-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      按平均执行时间排序的 TOP SQL
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-sql_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      按总执行时间排序的 TOP SQL
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-sql_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      按执行次数排名的 TOP SQL
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#toast" class="md-nav__link">
+    <span class="md-ellipsis">
+      包含 TOAST 的对象大小
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cpu-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用 CPU 的 SQL 语句
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      统计/回收脚本
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      未使用/很少使用的索引
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      排名等待事件
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      缺少外键索引的表
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      阻塞锁树
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2024-12-22 00:00:00+00:00" class="md-ellipsis">2024年12月22日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/performance/">Performance</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 9 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="-postgres">我最喜欢的一些东西 - Postgres 查询</h1>
+<p>本着节日的气氛，我想写一篇简短的文章，介绍我在日常使用 Postgres 时最喜欢的一些查询。其中一些查询是我自己开发的，其他一些则是在互联网上找到的（向之前发布过帖子的人致敬），并得到了进一步完善。</p>
+<p>在我的 github 网站上还可以找到更多：</p>
+<p><a href="https://github.com/shane-borden/sqlScripts/tree/master/postgres">https://github.com/shane-borden/sqlScripts/tree/master/postgres</a></p>
+<p>希望这些查询也能帮助您在日常工作中让 Postgres 运行得更好！</p>
+<!-- more -->
+
+<p>前三个查询根据执行次数、<code>mean_exec_time</code> 和 <code>total_exec_time</code> 对 <code>pg_stat_statements</code> 中的 TOP SQL 进行排名。我喜欢使用这些查询来快速了解我应该重点调整的内容。鉴于 <code>pg_stat_statements</code> 跟踪很多内容，您可以根据需要过滤掉某些“查询文本”，这样它们就不会影响排名。</p>
+<h2 id="top-sql">按平均执行时间排序的 TOP SQL</h2>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span>
+<span class="n">hist</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">queryid</span><span class="p">::</span><span class="nb">text</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">query</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="mi">1000</span><span class="p">)</span><span class="w"> </span><span class="n">query</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROW_NUMBER</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">OVER</span><span class="w"> </span><span class="p">(</span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">mean_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">DESC</span><span class="p">)</span><span class="w"> </span><span class="n">rn</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUM</span><span class="p">(</span><span class="n">mean_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="n">mean_exec_time</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_stat_statements</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">queryid</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%pg_%&#39;</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%g_%&#39;</span>
+<span class="w">        </span><span class="cm">/* Add more filters here */</span>
+<span class="w"> </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">       </span><span class="n">queryid</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">query</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="mi">1000</span><span class="p">),</span>
+<span class="w">       </span><span class="n">mean_exec_time</span><span class="p">::</span><span class="nb">numeric</span>
+<span class="p">),</span>
+<span class="n">total</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">mean_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="n">mean_exec_time</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span>
+<span class="p">)</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">DISTINCT</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">queryid</span><span class="p">::</span><span class="nb">text</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="n">mean_exec_time</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span><span class="p">,</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">query</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">       </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">14</span>
+<span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="s1">&#39;Others&#39;</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="k">COALESCE</span><span class="p">(</span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="n">mean_exec_time</span><span class="p">,</span>
+<span class="w">       </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">AVG</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span><span class="p">,</span>
+<span class="w">       </span><span class="k">NULL</span><span class="w"> </span><span class="n">sql_text</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">       </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">14</span>
+<span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="n">NULLS</span><span class="w"> </span><span class="k">LAST</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="top-sql_1">按总执行时间排序的 TOP SQL</h2>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span>
+<span class="n">hist</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">queryid</span><span class="p">::</span><span class="nb">text</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">query</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="n">query</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROW_NUMBER</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">OVER</span><span class="w"> </span><span class="p">(</span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">total_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">DESC</span><span class="p">)</span><span class="w"> </span><span class="n">rn</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUM</span><span class="p">(</span><span class="n">total_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="n">total_exec_time</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_stat_statements</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">queryid</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%pg_%&#39;</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%g_%&#39;</span>
+<span class="w">        </span><span class="cm">/* Add more filters here */</span>
+<span class="w"> </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">       </span><span class="n">queryid</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">query</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="mi">100</span><span class="p">),</span>
+<span class="w">       </span><span class="n">total_exec_time</span><span class="p">::</span><span class="nb">numeric</span>
+<span class="p">),</span>
+<span class="n">total</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">total_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="n">total_exec_time</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span>
+<span class="p">)</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">DISTINCT</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">queryid</span><span class="p">::</span><span class="nb">text</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">total_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="n">total_exec_time</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">total_exec_time</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span><span class="p">,</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">query</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">       </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">14</span>
+<span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="s1">&#39;Others&#39;</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="k">COALESCE</span><span class="p">(</span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">total_exec_time</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="n">total_exec_time</span><span class="p">,</span>
+<span class="w">       </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">total_exec_time</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">AVG</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">total_exec_time</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span><span class="p">,</span>
+<span class="w">       </span><span class="k">NULL</span><span class="w"> </span><span class="n">sql_text</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">       </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">14</span>
+<span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="n">NULLS</span><span class="w"> </span><span class="k">LAST</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="top-sql_2">按执行次数排名的 TOP SQL</h2>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span>
+<span class="n">hist</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">queryid</span><span class="p">::</span><span class="nb">text</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">query</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="n">query</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROW_NUMBER</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">OVER</span><span class="w"> </span><span class="p">(</span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">calls</span><span class="w"> </span><span class="k">DESC</span><span class="p">)</span><span class="w"> </span><span class="n">rn</span><span class="p">,</span>
+<span class="w">       </span><span class="n">calls</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_stat_statements</span><span class="w"> </span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">queryid</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%pg_%&#39;</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%g_%&#39;</span>
+<span class="w">        </span><span class="cm">/* Add more filters here */</span>
+<span class="w"> </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">       </span><span class="n">queryid</span><span class="p">,</span>
+<span class="w">       </span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">query</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="mi">100</span><span class="p">),</span>
+<span class="w">       </span><span class="n">calls</span>
+<span class="p">),</span>
+<span class="n">total</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">calls</span><span class="p">)</span><span class="w"> </span><span class="n">calls</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span>
+<span class="p">)</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">DISTINCT</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">queryid</span><span class="p">::</span><span class="nb">text</span><span class="p">,</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">calls</span><span class="p">,</span>
+<span class="w">       </span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">calls</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">calls</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span><span class="p">,</span>
+<span class="w">       </span><span class="n">h</span><span class="p">.</span><span class="n">query</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">       </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">calls</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">calls</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">14</span>
+<span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="s1">&#39;Others&#39;</span><span class="p">,</span>
+<span class="w">       </span><span class="k">COALESCE</span><span class="p">(</span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">calls</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">calls</span><span class="p">,</span>
+<span class="w">       </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">calls</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">AVG</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">calls</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span><span class="p">,</span>
+<span class="w">       </span><span class="k">NULL</span><span class="w"> </span><span class="n">sql_text</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">hist</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">       </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">calls</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">calls</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">14</span>
+<span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="n">NULLS</span><span class="w"> </span><span class="k">LAST</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="toast">包含 TOAST 的对象大小</h2>
+<p>显示表的总大小，包括其索引和 toast 大小。</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span>
+<span class="w">  </span><span class="o">*</span><span class="p">,</span>
+<span class="w">  </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">table_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">table</span><span class="p">,</span>
+<span class="w">  </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">toast_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">toast</span><span class="p">,</span>
+<span class="w">  </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">index_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">index</span><span class="p">,</span>
+<span class="w">  </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">total_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">total</span>
+<span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="k">SELECT</span>
+<span class="w">    </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">total_bytes</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">index_bytes</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">toast_bytes</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">table_bytes</span>
+<span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">      </span><span class="k">c</span><span class="p">.</span><span class="n">oid</span><span class="p">,</span>
+<span class="w">      </span><span class="n">nspname</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">table_schema</span><span class="p">,</span>
+<span class="w">      </span><span class="n">relname</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span>
+<span class="w">      </span><span class="k">c</span><span class="p">.</span><span class="n">reltuples</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">row_estimate</span><span class="p">,</span>
+<span class="w">      </span><span class="n">pg_total_relation_size</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">total_bytes</span><span class="p">,</span>
+<span class="w">      </span><span class="n">pg_indexes_size</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">index_bytes</span><span class="p">,</span>
+<span class="w">      </span><span class="n">pg_total_relation_size</span><span class="p">(</span><span class="n">reltoastrelid</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">toast_bytes</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">      </span><span class="n">pg_class</span><span class="w"> </span><span class="k">c</span>
+<span class="w">      </span><span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_namespace</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">n</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">relnamespace</span>
+<span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="n">relkind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;r&#39;</span>
+<span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="n">a</span>
+<span class="p">)</span><span class="w"> </span><span class="n">a</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">table_schema</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%&#39;</span>
+<span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%&#39;</span>
+<span class="k">AND</span><span class="w"> </span><span class="n">total_bytes</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">total_bytes</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="cpu-sql">使用 CPU 的 SQL 语句</h2>
+<p>使用 <code>pg_stat_statements</code>，此查询将把总时间分配为 CPU 时间。</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span>
+<span class="w">    </span><span class="n">pss</span><span class="p">.</span><span class="n">userid</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pss</span><span class="p">.</span><span class="n">dbid</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pd</span><span class="p">.</span><span class="n">datname</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">db_name</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pss</span><span class="p">.</span><span class="n">queryid</span><span class="p">,</span>
+<span class="w">    </span><span class="n">round</span><span class="p">((</span><span class="n">pss</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">pss</span><span class="p">.</span><span class="n">total_plan_time</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">total_time</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pss</span><span class="p">.</span><span class="n">calls</span><span class="p">,</span>
+<span class="w">    </span><span class="n">round</span><span class="p">((</span><span class="n">pss</span><span class="p">.</span><span class="n">mean_exec_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">pss</span><span class="p">.</span><span class="n">mean_plan_time</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">mean</span><span class="p">,</span>
+<span class="w">    </span><span class="n">round</span><span class="p">((</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">pss</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">pss</span><span class="p">.</span><span class="n">total_plan_time</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">sum</span><span class="p">((</span><span class="n">pss</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">pss</span><span class="p">.</span><span class="n">total_plan_time</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="n">OVER</span><span class="w"> </span><span class="p">())::</span><span class="nb">numeric</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">cpu_portion_pctg</span><span class="p">,</span>
+<span class="w">    </span><span class="n">substr</span><span class="p">(</span><span class="n">pss</span><span class="p">.</span><span class="n">query</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">)</span><span class="w"> </span><span class="n">short_query</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">pg_stat_statements</span><span class="w"> </span><span class="n">pss</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pg_database</span><span class="w"> </span><span class="n">pd</span>
+<span class="k">WHERE</span>
+<span class="w">    </span><span class="n">pd</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pss</span><span class="p">.</span><span class="n">dbid</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="n">query</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%FOR UPDATE%&#39;</span>
+<span class="w">    </span><span class="cm">/* Add more filters here */</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">    </span><span class="p">(</span><span class="n">pss</span><span class="p">.</span><span class="n">total_exec_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">pss</span><span class="p">.</span><span class="n">total_plan_time</span><span class="p">)</span><span class="w"> </span><span class="k">DESC</span>
+<span class="k">LIMIT</span><span class="w"> </span><span class="mi">30</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_1">统计/回收脚本</h2>
+<p>此脚本查看为 vacuum 和 analyze 设置的数据库和表选项，以提供计划运行 vacuum/analyze 的时间以及上次运行时间的报告。此脚本将让您很好地了解 vacuum 和 analyze 的运行情况：</p>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span>
+<span class="w">    </span><span class="n">oid</span><span class="p">,</span>
+<span class="w">    </span><span class="n">oid</span><span class="p">::</span><span class="n">regclass</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span>
+<span class="w">    </span><span class="n">substr</span><span class="p">(</span><span class="k">unnest</span><span class="p">(</span><span class="n">reloptions</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">  </span><span class="n">strpos</span><span class="p">(</span><span class="k">unnest</span><span class="p">(</span><span class="n">reloptions</span><span class="p">),</span><span class="w"> </span><span class="s1">&#39;=&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">option</span><span class="p">,</span>
+<span class="w">    </span><span class="n">substr</span><span class="p">(</span><span class="k">unnest</span><span class="p">(</span><span class="n">reloptions</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">strpos</span><span class="p">(</span><span class="k">unnest</span><span class="p">(</span><span class="n">reloptions</span><span class="p">),</span><span class="w"> </span><span class="s1">&#39;=&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">value</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">pg_class</span><span class="w"> </span><span class="k">c</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">reloptions</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">null</span><span class="p">)</span>
+<span class="k">SELECT</span>
+<span class="w">    </span><span class="n">s</span><span class="p">.</span><span class="n">schemaname</span><span class="w"> </span><span class="o">||</span><span class="s1">&#39;.&#39;</span><span class="o">||</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">relname</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">relname</span><span class="p">,</span>
+<span class="w">    </span><span class="n">n_live_tup</span><span class="w"> </span><span class="n">live_tup</span><span class="p">,</span>
+<span class="w">    </span><span class="n">n_dead_tup</span><span class="w"> </span><span class="n">dead_dup</span><span class="p">,</span>
+<span class="w">    </span><span class="n">n_tup_hot_upd</span><span class="w"> </span><span class="n">hot_upd</span><span class="p">,</span>
+<span class="w">    </span><span class="n">n_mod_since_analyze</span><span class="w"> </span><span class="n">mod_since_stats</span><span class="p">,</span>
+<span class="w">    </span><span class="n">n_ins_since_vacuum</span><span class="w"> </span><span class="n">ins_since_vac</span><span class="p">,</span>
+<span class="w">    </span><span class="k">case</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_insert_scale_factor&#39;</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_insert_threshold&#39;</span><span class="p">)),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_insert_scale_factor&#39;</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_insert_threshold&#39;</span><span class="p">)),</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="k">end</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">ins_for_vac</span><span class="p">,</span>
+<span class="w">    </span><span class="k">case</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_scale_factor&#39;</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_threshold&#39;</span><span class="p">)),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_scale_factor&#39;</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_threshold&#39;</span><span class="p">)),</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="k">end</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">mods_for_vac</span><span class="p">,</span>
+<span class="w">    </span><span class="k">case</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_analyze_scale_factor&#39;</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_analyze_threshold&#39;</span><span class="p">)),</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="n">ROUND</span><span class="p">(((</span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_analyze_scale_factor&#39;</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_analyze_threshold&#39;</span><span class="p">)),</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="k">end</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">mods_for_stats</span><span class="p">,</span>
+<span class="w">    </span><span class="k">case</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacfreezeage</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">ROUND</span><span class="p">((</span><span class="n">greatest</span><span class="p">(</span><span class="n">age</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">relfrozenxid</span><span class="p">),</span><span class="n">age</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">relfrozenxid</span><span class="p">))::</span><span class="nb">numeric</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">avacfreezeage</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="n">ROUND</span><span class="p">((</span><span class="n">greatest</span><span class="p">(</span><span class="n">age</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">relfrozenxid</span><span class="p">),</span><span class="n">age</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">relfrozenxid</span><span class="p">))::</span><span class="nb">numeric</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_freeze_max_age&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span>
+<span class="w">      </span><span class="k">end</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">avac_pct_frz</span><span class="p">,</span>
+<span class="w">    </span><span class="n">greatest</span><span class="p">(</span><span class="n">age</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">relfrozenxid</span><span class="p">),</span><span class="n">age</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">relfrozenxid</span><span class="p">))</span><span class="w"> </span><span class="n">max_txid_age</span><span class="p">,</span>
+<span class="w">    </span><span class="n">to_char</span><span class="p">(</span><span class="n">last_vacuum</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;YYYY-MM-DD HH24:MI&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">last_vac</span><span class="p">,</span>
+<span class="w">    </span><span class="n">to_char</span><span class="p">(</span><span class="n">last_analyze</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;YYYY-MM-DD HH24:MI&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">last_stats</span><span class="p">,</span>
+<span class="w">    </span><span class="n">to_char</span><span class="p">(</span><span class="n">last_autovacuum</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;YYYY-MM-DD HH24:MI&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">last_avac</span><span class="p">,</span>
+<span class="w">    </span><span class="n">to_char</span><span class="p">(</span><span class="n">last_autoanalyze</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;YYYY-MM-DD HH24:MI&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">last_astats</span><span class="p">,</span>
+<span class="w">    </span><span class="n">vacuum_count</span><span class="w"> </span><span class="n">vac_cnt</span><span class="p">,</span>
+<span class="w">    </span><span class="n">analyze_count</span><span class="w"> </span><span class="n">stats_cnt</span><span class="p">,</span>
+<span class="w">    </span><span class="n">autovacuum_count</span><span class="w"> </span><span class="n">avac_cnt</span><span class="p">,</span>
+<span class="w">    </span><span class="n">autoanalyze_count</span><span class="w"> </span><span class="n">astats_cnt</span><span class="p">,</span>
+<span class="w">    </span><span class="k">c</span><span class="p">.</span><span class="n">reloptions</span><span class="p">,</span>
+<span class="w">    </span><span class="k">case</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="n">avacenabled</span><span class="p">.</span><span class="n">value</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="n">avacenabled</span><span class="p">.</span><span class="n">value</span><span class="p">::</span><span class="nb">text</span>
+<span class="w">      </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="n">setting</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_settings</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;on&#39;</span>
+<span class="w">        </span><span class="k">then</span><span class="w"> </span><span class="s1">&#39;true&#39;</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;false&#39;</span>
+<span class="w">    </span><span class="k">end</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">autovac_enabled</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">pg_stat_all_tables</span><span class="w"> </span><span class="n">s</span>
+<span class="k">JOIN</span><span class="w"> </span><span class="n">pg_class</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_class</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">reltoastrelid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">oid</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacinsscalefactor</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_insert_scale_factor&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacinsthresh</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_insert_threshold&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacscalefactor</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_scale_factor&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacthresh</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacthresh</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_vacuum_threshold&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacanalyzescalefactor</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_analyze_scale_factor&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacanalyzethresh</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_analyze_threshold&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacfreezeage</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacfreezeage</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacfreezeage</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_freeze_max_age&#39;</span><span class="p">)</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">tbl_reloptions</span><span class="w"> </span><span class="n">avacenabled</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">relid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avacenabled</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">avacenabled</span><span class="p">.</span><span class="k">option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;autovacuum_enabled&#39;</span><span class="p">)</span>
+<span class="k">WHERE</span>
+<span class="w">    </span><span class="n">s</span><span class="p">.</span><span class="n">relname</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="k">SELECT</span>
+<span class="w">            </span><span class="n">t</span><span class="p">.</span><span class="k">table_name</span>
+<span class="w">        </span><span class="k">FROM</span>
+<span class="w">            </span><span class="n">information_schema</span><span class="p">.</span><span class="n">tables</span><span class="w"> </span><span class="n">t</span>
+<span class="w">            </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_class</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">relname</span><span class="p">)</span>
+<span class="w">            </span><span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_user</span><span class="w"> </span><span class="n">u</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">relowner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="n">usesysid</span><span class="p">)</span>
+<span class="w">        </span><span class="k">WHERE</span>
+<span class="w">            </span><span class="n">t</span><span class="p">.</span><span class="n">table_schema</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%&#39;</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="p">(</span><span class="n">u</span><span class="p">.</span><span class="n">usename</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%&#39;</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="n">usename</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="p">)</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="k">table_name</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">&#39;%&#39;</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">table_schema</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;information_schema&#39;</span><span class="p">,</span><span class="s1">&#39;pg_catalog&#39;</span><span class="p">)</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">table_type</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;VIEW&#39;</span><span class="p">)</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">table_catalog</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current_database</span><span class="p">())</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="n">n_dead_tup</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="n">n_live_tup</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_2">未使用/很少使用的索引</h2>
+<p>为了保持系统运行良好，维护尽可能少的索引非常重要。这将显示哪些索引最近没有被使用过。</p>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span><span class="w"> </span><span class="n">table_scans</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">relid</span><span class="p">,</span>
+<span class="w">        </span><span class="n">tables</span><span class="p">.</span><span class="n">idx_scan</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tables</span><span class="p">.</span><span class="n">seq_scan</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">all_scans</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="n">tables</span><span class="p">.</span><span class="n">n_tup_ins</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tables</span><span class="p">.</span><span class="n">n_tup_upd</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tables</span><span class="p">.</span><span class="n">n_tup_del</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">writes</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_relation_size</span><span class="p">(</span><span class="n">relid</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">table_size</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">pg_stat_all_tables</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">tables</span>
+<span class="w">    </span><span class="k">WHERE</span>
+<span class="w">        </span><span class="n">schemaname</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;pg_toast&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;pg_catalog&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;partman&#39;</span><span class="p">)</span>
+<span class="p">),</span>
+<span class="n">all_writes</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="k">sum</span><span class="p">(</span><span class="n">writes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">total_writes</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">table_scans</span>
+<span class="p">),</span>
+<span class="n">indexes</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">relid</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">indexrelid</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">schemaname</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">relname</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">tablename</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">indexrelname</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">indexname</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">idx_scan</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_relation_size</span><span class="p">(</span><span class="n">idx_stat</span><span class="p">.</span><span class="n">indexrelid</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">index_bytes</span><span class="p">,</span>
+<span class="w">        </span><span class="n">indexdef</span><span class="w"> </span><span class="o">~*</span><span class="w"> </span><span class="s1">&#39;USING btree&#39;</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">idx_is_btree</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">pg_stat_user_indexes</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">idx_stat</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_index</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="p">(</span><span class="n">indexrelid</span><span class="p">)</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_indexes</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">indexes</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">schemaname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">indexes</span><span class="p">.</span><span class="n">schemaname</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">relname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">indexes</span><span class="p">.</span><span class="n">tablename</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_stat</span><span class="p">.</span><span class="n">indexrelname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">indexes</span><span class="p">.</span><span class="n">indexname</span>
+<span class="w">    </span><span class="k">WHERE</span>
+<span class="w">        </span><span class="n">pg_index</span><span class="p">.</span><span class="n">indisunique</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">FALSE</span>
+<span class="p">),</span>
+<span class="n">index_ratios</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">schemaname</span><span class="p">,</span>
+<span class="w">        </span><span class="n">tablename</span><span class="p">,</span>
+<span class="w">        </span><span class="n">indexname</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_scan</span><span class="p">,</span>
+<span class="w">        </span><span class="n">all_scans</span><span class="p">,</span>
+<span class="w">        </span><span class="n">round</span><span class="p">((</span>
+<span class="w">            </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">all_scans</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">THEN</span>
+<span class="w">                </span><span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="p">::</span><span class="nb">numeric</span>
+<span class="w">            </span><span class="k">ELSE</span>
+<span class="w">                </span><span class="n">idx_scan</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">all_scans</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="k">END</span><span class="p">),</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">index_scan_pct</span><span class="p">,</span>
+<span class="w">        </span><span class="n">writes</span><span class="p">,</span>
+<span class="w">        </span><span class="n">round</span><span class="p">((</span>
+<span class="w">            </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">writes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">THEN</span>
+<span class="w">                </span><span class="n">idx_scan</span><span class="p">::</span><span class="nb">numeric</span>
+<span class="w">            </span><span class="k">ELSE</span>
+<span class="w">                </span><span class="n">idx_scan</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">writes</span>
+<span class="w">            </span><span class="k">END</span><span class="p">),</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">scans_per_write</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">index_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">index_size</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">table_size</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">table_size</span><span class="p">,</span>
+<span class="w">        </span><span class="n">idx_is_btree</span><span class="p">,</span>
+<span class="w">        </span><span class="n">index_bytes</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">indexes</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">table_scans</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="p">(</span><span class="n">relid</span><span class="p">)</span>
+<span class="p">),</span>
+<span class="n">index_groups</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="s1">&#39;Never Used Indexes&#39;</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">reason</span><span class="p">,</span>
+<span class="w">        </span><span class="o">*</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">1</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">grp</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">index_ratios</span>
+<span class="w">    </span><span class="k">WHERE</span>
+<span class="w">        </span><span class="n">idx_scan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_is_btree</span>
+<span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="s1">&#39;Low Scans, High Writes&#39;</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">reason</span><span class="p">,</span>
+<span class="w">        </span><span class="o">*</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">2</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">grp</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">index_ratios</span>
+<span class="w">    </span><span class="k">WHERE</span>
+<span class="w">        </span><span class="n">scans_per_write</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">index_scan_pct</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">10</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_scan</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">writes</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_is_btree</span>
+<span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="s1">&#39;Seldom Used Large Indexes&#39;</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">reason</span><span class="p">,</span>
+<span class="w">        </span><span class="o">*</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">3</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">grp</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">index_ratios</span>
+<span class="w">    </span><span class="k">WHERE</span>
+<span class="w">        </span><span class="n">index_scan_pct</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">scans_per_write</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_scan</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">idx_is_btree</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="n">index_bytes</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">100000000</span>
+<span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="s1">&#39;High-Write Large Non-Btree&#39;</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">reason</span><span class="p">,</span>
+<span class="w">        </span><span class="n">index_ratios</span><span class="p">.</span><span class="o">*</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">4</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">grp</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">index_ratios</span><span class="p">,</span>
+<span class="w">        </span><span class="n">all_writes</span>
+<span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="p">(</span><span class="n">writes</span><span class="p">::</span><span class="nb">numeric</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">total_writes</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">.</span><span class="mi">02</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="n">idx_is_btree</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="n">index_bytes</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">100000000</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">    </span><span class="n">grp</span><span class="p">,</span>
+<span class="w">    </span><span class="n">index_bytes</span><span class="w"> </span><span class="k">DESC</span>
+<span class="p">)</span>
+<span class="k">SELECT</span>
+<span class="w">    </span><span class="n">reason</span><span class="p">,</span>
+<span class="w">    </span><span class="n">schemaname</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tablename</span><span class="p">,</span>
+<span class="w">    </span><span class="n">indexname</span><span class="p">,</span>
+<span class="w">    </span><span class="n">index_scan_pct</span><span class="p">,</span>
+<span class="w">    </span><span class="n">scans_per_write</span><span class="p">,</span>
+<span class="w">    </span><span class="n">index_size</span><span class="p">,</span>
+<span class="w">    </span><span class="n">table_size</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">index_groups</span>
+<span class="k">WHERE</span>
+<span class="w">    </span><span class="n">tablename</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%&#39;</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_3">排名等待事件</h2>
+<p>这是一项很棒的查询，可以对 <code>pg_stat_activity</code> 中观察到的等待事件从最频繁到最不频繁进行排序。这不提供历史参考，而是查看当前时刻：</p>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span><span class="w"> </span><span class="n">waits</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">wait_event</span><span class="p">,</span>
+<span class="w">        </span><span class="n">rank</span><span class="p">()</span><span class="w"> </span><span class="n">OVER</span><span class="w"> </span><span class="p">(</span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="n">wait_event</span><span class="p">)</span><span class="w"> </span><span class="k">DESC</span><span class="p">)</span><span class="w"> </span><span class="n">rn</span>
+<span class="w">    </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_stat_activity</span>
+<span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="n">wait_event</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">wait_event</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="n">wait_event</span><span class="p">)</span><span class="w"> </span><span class="k">ASC</span>
+<span class="p">),</span>
+<span class="n">total</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="k">SUM</span><span class="p">(</span><span class="n">rn</span><span class="p">)</span><span class="w"> </span><span class="n">total_waits</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">waits</span>
+<span class="p">)</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">DISTINCT</span>
+<span class="w">    </span><span class="n">h</span><span class="p">.</span><span class="n">wait_event</span><span class="p">,</span>
+<span class="w">    </span><span class="n">h</span><span class="p">.</span><span class="n">rn</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h</span><span class="p">.</span><span class="n">rn</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">total_waits</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">waits</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">    </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="k">WHERE</span>
+<span class="w">    </span><span class="n">h</span><span class="p">.</span><span class="n">rn</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">total_waits</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span>
+<span class="w">    </span><span class="k">AND</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">14</span>
+<span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="k">SELECT</span>
+<span class="w">    </span><span class="s1">&#39;Others&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="k">COALESCE</span><span class="p">(</span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">rn</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">rn</span><span class="p">,</span>
+<span class="w">    </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">ROUND</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">h</span><span class="p">.</span><span class="n">rn</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">AVG</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">total_waits</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">percent</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">waits</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">    </span><span class="n">total</span><span class="w"> </span><span class="n">t</span>
+<span class="k">WHERE</span>
+<span class="w">    </span><span class="n">h</span><span class="p">.</span><span class="n">rn</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">total_waits</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span>
+<span class="w">    </span><span class="k">OR</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">14</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">    </span><span class="mi">2</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="n">NULLS</span><span class="w"> </span><span class="k">LAST</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_4">缺少外键索引的表</h2>
+<p>通常，当外键没有索引支持时，查询的运行时间会很差。以下查询可以显示缺少的索引：</p>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;%I.%I&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="p">.</span><span class="n">nspname</span><span class="p">,</span><span class="w"> </span><span class="n">c1</span><span class="p">.</span><span class="n">relname</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referencing_tbl</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">quote_ident</span><span class="p">(</span><span class="n">a1</span><span class="p">.</span><span class="n">attname</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referencing_column</span><span class="p">,</span>
+<span class="w">        </span><span class="n">t</span><span class="p">.</span><span class="n">conname</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">existing_fk_on_referencing_tbl</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;%I.%I&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="p">.</span><span class="n">nspname</span><span class="p">,</span><span class="w"> </span><span class="n">c2</span><span class="p">.</span><span class="n">relname</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referenced_tbl</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">quote_ident</span><span class="p">(</span><span class="n">a2</span><span class="p">.</span><span class="n">attname</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referenced_column</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_relation_size</span><span class="p">(</span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;%I.%I&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="p">.</span><span class="n">nspname</span><span class="p">,</span><span class="w"> </span><span class="n">c1</span><span class="p">.</span><span class="n">relname</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referencing_tbl_bytes</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_relation_size</span><span class="p">(</span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;%I.%I&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="p">.</span><span class="n">nspname</span><span class="p">,</span><span class="w"> </span><span class="n">c2</span><span class="p">.</span><span class="n">relname</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referenced_tbl_bytes</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">format</span><span class="p">(</span><span class="err">$$</span><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="o">%</span><span class="n">I</span><span class="p">.</span><span class="o">%</span><span class="n">I</span><span class="p">(</span><span class="o">%</span><span class="n">I</span><span class="p">);</span><span class="err">$$</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="p">.</span><span class="n">nspname</span><span class="p">,</span><span class="w"> </span><span class="n">c1</span><span class="p">.</span><span class="n">relname</span><span class="p">,</span><span class="w"> </span><span class="n">a1</span><span class="p">.</span><span class="n">attname</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">suggestion</span>
+<span class="w">    </span><span class="k">FROM</span>
+<span class="w">        </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_constraint</span><span class="w"> </span><span class="n">t</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_attribute</span><span class="w"> </span><span class="n">a1</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">a1</span><span class="p">.</span><span class="n">attrelid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">conrelid</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">a1</span><span class="p">.</span><span class="n">attnum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">conkey</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_class</span><span class="w"> </span><span class="n">c1</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">c1</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">conrelid</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_namespace</span><span class="w"> </span><span class="n">n1</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">n1</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c1</span><span class="p">.</span><span class="n">relnamespace</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_class</span><span class="w"> </span><span class="n">c2</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">c2</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">confrelid</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_namespace</span><span class="w"> </span><span class="n">n2</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">n2</span><span class="p">.</span><span class="n">oid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c2</span><span class="p">.</span><span class="n">relnamespace</span>
+<span class="w">        </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_attribute</span><span class="w"> </span><span class="n">a2</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">a2</span><span class="p">.</span><span class="n">attrelid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">confrelid</span>
+<span class="w">            </span><span class="k">AND</span><span class="w"> </span><span class="n">a2</span><span class="p">.</span><span class="n">attnum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">confkey</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="w">    </span><span class="k">WHERE</span>
+<span class="w">        </span><span class="n">t</span><span class="p">.</span><span class="n">contype</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;f&#39;</span>
+<span class="w">        </span><span class="k">AND</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">            </span><span class="k">SELECT</span>
+<span class="w">                </span><span class="mi">1</span>
+<span class="w">            </span><span class="k">FROM</span>
+<span class="w">                </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_index</span><span class="w"> </span><span class="n">i</span>
+<span class="w">            </span><span class="k">WHERE</span>
+<span class="w">                </span><span class="n">i</span><span class="p">.</span><span class="n">indrelid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">conrelid</span>
+<span class="w">                </span><span class="k">AND</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">indkey</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">conkey</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+<span class="k">SELECT</span>
+<span class="w">    </span><span class="n">referencing_tbl</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referencing_column</span><span class="p">,</span>
+<span class="w">    </span><span class="n">existing_fk_on_referencing_tbl</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referenced_tbl</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referenced_column</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">referencing_tbl_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referencing_tbl_size</span><span class="p">,</span>
+<span class="w">    </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">referenced_tbl_bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">referenced_tbl_size</span><span class="p">,</span>
+<span class="w">    </span><span class="n">suggestion</span>
+<span class="k">FROM</span>
+<span class="w">    </span><span class="n">y</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span>
+<span class="w">    </span><span class="n">referencing_tbl_bytes</span><span class="w"> </span><span class="k">DESC</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referenced_tbl_bytes</span><span class="w"> </span><span class="k">DESC</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referencing_tbl</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referenced_tbl</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referencing_column</span><span class="p">,</span>
+<span class="w">    </span><span class="n">referenced_column</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_5">阻塞锁树</h2>
+<p><a href="https://postgres.ai/blog/20211018-postgresql-lock-trees">postgres.ai</a> 是获取一些可观察性查询的好地方，这是我最喜欢的查询之一：</p>
+<div class="highlight"><pre><span></span><code><span class="k">with</span><span class="w"> </span><span class="k">recursive</span><span class="w"> </span><span class="n">activity</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="k">select</span>
+<span class="w">    </span><span class="n">pg_blocking_pids</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span><span class="w"> </span><span class="n">blocked_by</span><span class="p">,</span>
+<span class="w">    </span><span class="o">*</span><span class="p">,</span>
+<span class="w">    </span><span class="n">age</span><span class="p">(</span><span class="n">clock_timestamp</span><span class="p">(),</span><span class="w"> </span><span class="n">xact_start</span><span class="p">)::</span><span class="nb">interval</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">tx_age</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">-- &quot;pg_locks.waitstart&quot; – PG14+ only; for older versions:  age(clock_timestamp(), state_change) as wait_age,</span>
+<span class="w">    </span><span class="n">age</span><span class="p">(</span><span class="n">clock_timestamp</span><span class="p">(),</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">l</span><span class="p">.</span><span class="n">waitstart</span><span class="p">)</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">pg_locks</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">l</span><span class="p">.</span><span class="n">pid</span><span class="p">))::</span><span class="nb">interval</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">wait_age</span>
+<span class="w">  </span><span class="k">from</span><span class="w"> </span><span class="n">pg_stat_activity</span><span class="w"> </span><span class="n">a</span>
+<span class="w">  </span><span class="k">where</span><span class="w"> </span><span class="k">state</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">distinct</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="s1">&#39;idle&#39;</span>
+<span class="p">),</span><span class="w"> </span><span class="n">blockers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="k">select</span>
+<span class="w">    </span><span class="n">array_agg</span><span class="p">(</span><span class="k">distinct</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="k">order</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="k">c</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">pids</span>
+<span class="w">  </span><span class="k">from</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="k">unnest</span><span class="p">(</span><span class="n">blocked_by</span><span class="p">)</span>
+<span class="w">    </span><span class="k">from</span><span class="w"> </span><span class="n">activity</span>
+<span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">dt</span><span class="p">(</span><span class="k">c</span><span class="p">)</span>
+<span class="p">),</span><span class="w"> </span><span class="n">tree</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="k">select</span>
+<span class="w">    </span><span class="n">activity</span><span class="p">.</span><span class="o">*</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">level</span><span class="p">,</span>
+<span class="w">    </span><span class="n">activity</span><span class="p">.</span><span class="n">pid</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">top_blocker_pid</span><span class="p">,</span>
+<span class="w">    </span><span class="nb">array</span><span class="p">[</span><span class="n">activity</span><span class="p">.</span><span class="n">pid</span><span class="p">]</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">path</span><span class="p">,</span>
+<span class="w">    </span><span class="nb">array</span><span class="p">[</span><span class="n">activity</span><span class="p">.</span><span class="n">pid</span><span class="p">]::</span><span class="nb">int</span><span class="p">[]</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">all_blockers_above</span>
+<span class="w">  </span><span class="k">from</span><span class="w"> </span><span class="n">activity</span><span class="p">,</span><span class="w"> </span><span class="n">blockers</span>
+<span class="w">  </span><span class="k">where</span>
+<span class="w">    </span><span class="nb">array</span><span class="p">[</span><span class="n">pid</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;@</span><span class="w"> </span><span class="n">blockers</span><span class="p">.</span><span class="n">pids</span>
+<span class="w">    </span><span class="k">and</span><span class="w"> </span><span class="n">blocked_by</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="p">::</span><span class="nb">int</span><span class="p">[]</span>
+<span class="w">  </span><span class="k">union</span><span class="w"> </span><span class="k">all</span>
+<span class="w">  </span><span class="k">select</span>
+<span class="w">    </span><span class="n">activity</span><span class="p">.</span><span class="o">*</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tree</span><span class="p">.</span><span class="k">level</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">level</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tree</span><span class="p">.</span><span class="n">top_blocker_pid</span><span class="p">,</span>
+<span class="w">    </span><span class="n">path</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">array</span><span class="p">[</span><span class="n">activity</span><span class="p">.</span><span class="n">pid</span><span class="p">]</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">path</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tree</span><span class="p">.</span><span class="n">all_blockers_above</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">array_agg</span><span class="p">(</span><span class="n">activity</span><span class="p">.</span><span class="n">pid</span><span class="p">)</span><span class="w"> </span><span class="n">over</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">all_blockers_above</span>
+<span class="w">  </span><span class="k">from</span><span class="w"> </span><span class="n">activity</span><span class="p">,</span><span class="w"> </span><span class="n">tree</span>
+<span class="w">  </span><span class="k">where</span>
+<span class="w">    </span><span class="k">not</span><span class="w"> </span><span class="nb">array</span><span class="p">[</span><span class="n">activity</span><span class="p">.</span><span class="n">pid</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;@</span><span class="w"> </span><span class="n">tree</span><span class="p">.</span><span class="n">all_blockers_above</span>
+<span class="w">    </span><span class="k">and</span><span class="w"> </span><span class="n">activity</span><span class="p">.</span><span class="n">blocked_by</span><span class="w"> </span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="p">::</span><span class="nb">int</span><span class="p">[]</span>
+<span class="w">    </span><span class="k">and</span><span class="w"> </span><span class="n">activity</span><span class="p">.</span><span class="n">blocked_by</span><span class="w"> </span><span class="o">&lt;@</span><span class="w"> </span><span class="n">tree</span><span class="p">.</span><span class="n">all_blockers_above</span>
+<span class="p">)</span>
+<span class="k">select</span>
+<span class="w">  </span><span class="n">pid</span><span class="p">,</span>
+<span class="w">  </span><span class="n">blocked_by</span><span class="p">,</span>
+<span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">wait_event_type</span><span class="w"> </span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="s1">&#39;Lock&#39;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="k">replace</span><span class="p">(</span><span class="k">state</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;idle in transaction&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;idletx&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;waiting&#39;</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">state</span><span class="p">,</span>
+<span class="w">  </span><span class="n">wait_event_type</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s1">&#39;:&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">wait_event</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">wait</span><span class="p">,</span>
+<span class="w">  </span><span class="n">wait_age</span><span class="p">,</span>
+<span class="w">  </span><span class="n">tx_age</span><span class="p">,</span>
+<span class="w">  </span><span class="n">to_char</span><span class="p">(</span><span class="n">age</span><span class="p">(</span><span class="n">backend_xid</span><span class="p">),</span><span class="w"> </span><span class="s1">&#39;FM999,999,999,990&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">xid_age</span><span class="p">,</span>
+<span class="w">  </span><span class="n">to_char</span><span class="p">(</span><span class="mi">2147483647</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">age</span><span class="p">(</span><span class="n">backend_xmin</span><span class="p">),</span><span class="w"> </span><span class="s1">&#39;FM999,999,999,990&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">xmin_ttf</span><span class="p">,</span>
+<span class="w">  </span><span class="n">datname</span><span class="p">,</span>
+<span class="w">  </span><span class="n">usename</span><span class="p">,</span>
+<span class="w">  </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">distinct</span><span class="w"> </span><span class="n">t1</span><span class="p">.</span><span class="n">pid</span><span class="p">)</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">tree</span><span class="w"> </span><span class="n">t1</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="nb">array</span><span class="p">[</span><span class="n">tree</span><span class="p">.</span><span class="n">pid</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;@</span><span class="w"> </span><span class="n">t1</span><span class="p">.</span><span class="n">path</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">t1</span><span class="p">.</span><span class="n">pid</span><span class="w"> </span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">tree</span><span class="p">.</span><span class="n">pid</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">blkd</span><span class="p">,</span>
+<span class="w">  </span><span class="n">format</span><span class="p">(</span>
+<span class="w">    </span><span class="s1">&#39;%s %s%s&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="n">lpad</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">pid</span><span class="p">::</span><span class="nb">text</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s1">&#39;]&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="p">),</span>
+<span class="w">    </span><span class="n">repeat</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">level</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="k">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="k">end</span><span class="p">,</span>
+<span class="w">    </span><span class="k">left</span><span class="p">(</span><span class="n">query</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">)</span>
+<span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">query</span>
+<span class="k">from</span><span class="w"> </span><span class="n">tree</span>
+<span class="k">order</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">top_blocker_pid</span><span class="p">,</span><span class="w"> </span><span class="k">level</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">;</span>
+</code></pre></div>
+<blockquote>
+<p>作者：Shane Borden<br>
+原文：<a href="https://stborden.wordpress.com/2024/12/17/some-of-my-favorite-things-postgres-queries/">https://stborden.wordpress.com/2024/12/17/some-of-my-favorite-things-postgres-queries/</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

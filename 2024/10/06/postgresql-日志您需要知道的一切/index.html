@@ -1,0 +1,1667 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+        <link rel="next" href="../../18/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E5%9C%A8-postgresql-%E4%B8%AD%E7%9A%84-commit-%E5%BE%88%E6%85%A2/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>PostgreSQL 日志：您需要知道的一切 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#postgresql" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PostgreSQL 日志：您需要知道的一切
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      前提
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      搭建示例数据库
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      PostgreSQL 日志存储在哪里？
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      PostgreSQL 日志的类型
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PostgreSQL 日志的类型">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. 启动和关闭日志
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. 查询日志
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. 查询持续时间日志
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. 错误日志
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. 连接和断开连接日志
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-wal" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. 检查点和预写日志 (WAL)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      开启日志收集器
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      自定义日志文件
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      设置日志文件轮换
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      日志格式
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="日志格式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      自定义日志格式
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      自定义时区
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json" class="md-nav__link">
+    <span class="md-ellipsis">
+      JSON 结构化日志
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      如何记录 PostgreSQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="如何记录 PostgreSQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      记录查询持续时间
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      记录慢查询
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      PostgreSQL 中的消息严重性级别
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      减少日志详细程度
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      记录连接和断开连接
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      创建自定义日志消息
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pgbadger" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用 PgBadger 分析日志文件
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      总结
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2024-10-06 00:00:00+00:00" class="md-ellipsis">2024年10月6日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/log/">Log</a>, 
+                              <a href="../../../../category/settings/">Settings</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 11 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="postgresql">PostgreSQL 日志：您需要知道的一切</h1>
+<p>PostgreSQL 日志是解决问题、跟踪性能和审计数据库活动的宝贵资源。在将应用程序部署到生产环境之前，有必要对日志配置进行微调，以确保记录足够多的信息来诊断问题，同时不会减慢基本数据库操作的速度。</p>
+<!-- more -->
+
+<p>为了实现理想的平衡，深入了解各种 PostgreSQL 日志参数是至关重要的。有了这些知识，再加上对日志使用方式的理解，您就可以很好地定制日志设置，以精确满足您的<a href="https://betterstack.com/community/comparisons/postgresql-monitoring-tools/">监控</a>和故障分析需求。</p>
+<p>当您的应用程序已经出现问题时，再来调整日志参数是不正确的做法。主动关注数据库日志是充分利用它们的最佳方法。</p>
+<p>本文讨论了不同类型的 PostgreSQL 日志、如何配置 PostgreSQL 提供的许多日志参数以及如何解释日志消息。本文还提供了一些有关如何使用 PostgreSQL 日志来解决问题和提高数据库性能的提示。</p>
+<h2 id="_1">前提</h2>
+<p>您需要在计算机上<a href="https://www.postgresql.org/download/">安装</a>并运行 PostgreSQL。确保您拥有 <a href="https://www.postgresql.org/docs/release/15.0/">PostgreSQL 15</a> 或更高版本，因为它引入了以 <a href="https://betterstack.com/community/guides/logging/structured-logging/">JSON 格式输出结构化日志</a>的功能。</p>
+<p>要检查客户端版本，请使用以下命令：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>psql<span class="w"> </span>--version<span class="w"> </span><span class="c1"># client version</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>psql (PostgreSQL) 15.3 (Ubuntu 15.3-1.pgdg22.04+1)
+</code></pre></div>
+<p>可以通过执行以下命令查看服务器版本：</p>
+<p><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>-u<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;SHOW server_version;&#39;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>          server_version
+----------------------------------
+ 15.3 (Ubuntu 15.3-1.pgdg22.04+1)
+</code></pre></div></p>
+<h2 id="_2">搭建示例数据库</h2>
+<p>为了遵循本文中的示例，您可以设置流行的 <a href="https://github.com/morenoh149/postgresDBSamples/blob/master/chinook-1.4/">Chinook 示例数据库</a> ，它代表一个数字媒体商店，其中包括艺术家、专辑、媒体曲目、发票和客户的表。</p>
+<p>首先将<a href="https://gist.githubusercontent.com/ayoisaiah/ebf628402706de0b6053699f9e0776ed/raw/43a4ce34a3c7ef397d2cf235f20f9217985f18e1/chinook.sql">数据库文件</a>下载到您的计算机：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>curl<span class="w"> </span>-LO<span class="w"> </span>https://gist.github.com/ayoisaiah/ebf628402706de0b6053699f9e0776ed/raw/43a4ce34a3c7ef397d2cf235f20f9217985f18e1/chinook.sql
+</code></pre></div>
+<p>接下来，使用默认的 <code>postgres</code> 用户启动 <code>psql</code>：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>sudo<span class="w"> </span>-u<span class="w"> </span>postgres<span class="w"> </span>psql
+</code></pre></div>
+<p>如下所示，创建 <code>chinook</code> 数据库：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">DATABASE</span><span class="w"> </span><span class="n">chinook</span><span class="w"> </span><span class="k">OWNER</span><span class="w"> </span><span class="n">postgres</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>CREATE DATABASE
+</code></pre></div>
+<p>连接刚刚创建的 <code>chinook</code> 数据库：</p>
+<div class="highlight"><pre><span></span><code><span class="kp">\c</span><span class="w"> </span><span class="ss">chinook</span>
+</code></pre></div>
+<p>最后，导入 <code>chinook.sql</code> 文件来创建表并填充数据：</p>
+<div class="highlight"><pre><span></span><code><span class="kp">\i</span><span class="w"> </span><span class="ss">chinook.sql</span>
+</code></pre></div>
+<p>上述命令执行完成后，您可以运行以下查询来确认数据是否导入：</p>
+<div class="highlight"><pre><span></span><code><span class="k">TABLE</span><span class="w"> </span><span class="n">album</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code> albumid |                 title                 | artistid
+---------+---------------------------------------+----------
+       1 | For Those About To Rock We Salute You |        1
+       2 | Balls to the Wall                     |        2
+       3 | Restless and Wild                     |        2
+       4 | Let There Be Rock                     |        1
+       5 | Big Ones                              |        3
+       6 | Jagged Little Pill                    |        4
+       7 | Facelift                              |        5
+       8 | Warner 25 Anos                        |        6
+       9 | Plays Metallica By Four Cellos        |        7
+      10 | Audioslave                            |        8
+(10 rows)
+</code></pre></div>
+<p>您现在可以退出 <code>psql</code>：</p>
+<div class="highlight"><pre><span></span><code><span class="kp">\q</span>
+</code></pre></div>
+<p>现在您已经有了一些可以使用的数据，让我们继续下一部分，您将了解在哪里可以找到 PostgreSQL 服务器生成的日志。</p>
+<details class="tip">
+<summary>提示</summary>
+<p>为了测试目的，您可以在 <code>psql</code> 中输入 <code>SET log_statement = 'all'</code>，以便所有数据库查询都记录在服务器日志中。</p>
+</details>
+<h2 id="postgresql_1">PostgreSQL 日志存储在哪里？</h2>
+<p>PostgreSQL 服务器默认将其日志输出到标准错误流。您可以通过在 <code>psql</code> 中执行以下查询来确认这一点：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SHOW</span><span class="w"> </span><span class="n">log_destination</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code> log_destination
+-----------------
+ stderr
+(1 row)
+</code></pre></div>
+<p>它还提供了一个日志收集器进程，负责捕获发送到标准错误的日志并将其路由到日志文件。此日志收集器的行为由 <code>logging_collector</code> 参数控制。</p>
+<p>让我们继续通过 psql 查看 <code>logging_collector</code> 参数的当前值：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SHOW</span><span class="w"> </span><span class="n">logging_collector</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code> logging_collector
+-------------------
+ off
+(1 row)
+</code></pre></div>
+<p>默认情况下，<code>logging_collector</code> 是关闭的，因此 PostgreSQL 日志（发送到服务器的标准错误流）不会由日志收集器进程处理。这意味着日志的目的地取决于服务器的标准错误输出流的指向位置。</p>
+<p>在 Ubuntu 上，您可以使用 <code>pg_lsclusters</code> 命令来查找计算机上运行的所有 PostgreSQL 集群的日志文件：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>pg_lsclusters
+</code></pre></div>
+<p><strong>日志文件</strong>列指示文件的位置：</p>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>Ver Cluster Port Status Owner    Data directory              Log file
+14  main    5432 online postgres /var/lib/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
+</code></pre></div>
+<p>如果您的机器上已启用 <code>logging_collector</code>，您可以在 <code>psql</code> 中执行以下查询来找出文件的位置：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">pg_current_logfile</span><span class="p">();</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>   pg_current_logfile
+------------------------
+ log/postgresql-Thu.log
+(1 row)
+</code></pre></div>
+<p>指定的文件（在本例中为 <code>log/postgresql-Thu.log</code>）与 PostgreSQL 数据目录相关，您可以通过输入以下查询来找到该目录：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SHOW</span><span class="w"> </span><span class="n">data_directory</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>   data_directory
+---------------------
+ /var/lib/pgsql/data
+(1 row)
+</code></pre></div>
+<p>本例中日志文件的完整路径是：</p>
+<div class="highlight"><pre><span></span><code>/var/lib/pgsql/data/log/postgresql-Thu.log
+</code></pre></div>
+<p>当您定位为到了 PostgreSQL 日志文件后，便可继续下一部分，我们将在浏览文件内容时可能遇到的各种类型的日志。</p>
+<h2 id="postgresql_2">PostgreSQL 日志的类型</h2>
+<p>基于您的配置，您可能会在日志文件中遇到各种类型的 PostgreSQL 日志。本部分将介绍其中最重要的内容以及它们的外观。</p>
+<p>请注意，为了简洁起见，下面的示例有意省略了日志行前缀（以下 <code>&lt;log_message&gt;</code> 之前的所有内容）。仅显示 <code>&lt;log_message&gt;</code> 部分。</p>
+<div class="highlight"><pre><span></span><code>2023-07-30 08:31:50.628 UTC [2176] postgres@chinook &lt;log_message&gt;
+</code></pre></div>
+<h3 id="1">1. 启动和关闭日志</h3>
+<p>这些日志描述了 PostgreSQL 服务器的启动和关闭过程。启动日志包括服务器版本、IP 地址、端口和 UNIX 套接字。它们还报告服务器上次关闭的时间并表明其已准备好接受新的连接：</p>
+<div class="highlight"><pre><span></span><code>LOG:  starting PostgreSQL 15.3 (Ubuntu 15.3-0ubuntu0.22.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.3.0-1ubuntu1~22.04.1) 11.3.0, 64-bit
+LOG:  listening on IPv4 address &quot;127.0.0.1&quot;, port 5432
+LOG:  listening on Unix socket &quot;/var/run/postgresql/.s.PGSQL.5432&quot;
+LOG:  database system was shut down at 2023-07-27 17:45:08 UTC
+LOG:  database system is ready to accept connections
+</code></pre></div>
+<p>另一方面，关闭日志是描述服务器关闭的原因和方式，这在调查意外的数据库故障时非常有用。下面的日志描述了当 <code>SIGINT</code> 信号发送到服务器时的快速关闭过程：</p>
+<div class="highlight"><pre><span></span><code>LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  background worker &quot;logical replication launcher&quot; (PID 82894) exited with exit code 1
+LOG:  shutting down
+LOG:  database system is shut down
+</code></pre></div>
+<h3 id="2">2. 查询日志</h3>
+<p>这些日志代表针对 PostgreSQL 数据库执行的各种 SQL 查询，包括 <code>SELECT</code>、<code>INSERT</code>、<code>UPDATE</code>、<code>DELETE</code> 等。</p>
+<div class="highlight"><pre><span></span><code>STATEMENT:  select c.firstname, c.lastname, i.invoiceid, i.invoicedate, i.billingcountry
+        from customer as c, invoice as i
+        where c.country = &#39;Brazil&#39; and
+        select distinct billingcountry from invoice;
+LOG:  statement: select distinct billingcountry from invoice;
+LOG:  statement: select albumid, title from album where artistid = 2;
+</code></pre></div>
+<h3 id="3">3. 查询持续时间日志</h3>
+<p>与查询日志密切相关的是持续时间日志，它跟踪查询完成所需的时间：</p>
+<div class="highlight"><pre><span></span><code>LOG:  duration: 13.020 ms
+LOG:  duration: 13.504 ms  statement: UPDATE album SET title = &#39;Audioslave&#39; WHERE albumid = 10;
+</code></pre></div>
+<h3 id="4">4. 错误日志</h3>
+<p>错误日志可帮助您识别导致服务器出现错误情况的查询。这些情况包括查询特定的错误（例如约束违规或数据类型不匹配）以及更严重的问题（例如死锁和资源耗尽）。以下是此类日志的示例：</p>
+<div class="highlight"><pre><span></span><code>ERROR:  relation &quot;custome&quot; does not exist at character 15
+STATEMENT:  select * from custome where country = &#39;Brazil&#39;;
+ERROR:  duplicate key value violates unique constraint &quot;pk_album&quot;
+DETAIL:  Key (albumid)=(10) already exists.
+STATEMENT:  UPDATE album SET albumid = 10 WHERE albumid = 2;
+</code></pre></div>
+<h3 id="5">5. 连接和断开连接日志</h3>
+<p>有关客户端连接和断开数据库的信息也可以记录在日志中。这些记录包括源 IP 地址、用户名、数据库名称和连接状态。如果发生断开连接，它们还包括会话总时长。</p>
+<div class="highlight"><pre><span></span><code>LOG:  connection received: host=[local]
+LOG:  connection authenticated: identity=&quot;postgres&quot; method=peer (/etc/postgresql/15/main/pg_hba.conf:90)
+LOG:  connection authorized: user=postgres database=chinook application_name=psql
+LOG:  disconnection: session time: 0:00:08.602 user=postgres database=chinook host=[local]
+</code></pre></div>
+<h3 id="6-wal">6. 检查点和预写日志 (WAL)</h3>
+<p>检查点表示预写日志 (WAL) 将修改后的数据从内存（共享缓冲区）刷新到磁盘的时刻。这些日志如下所示：</p>
+<div class="highlight"><pre><span></span><code>LOG:  checkpoint starting: time
+LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.002 s, total=0.025 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB
+</code></pre></div>
+<h2 id="_3">开启日志收集器</h2>
+<p>如前所述，日志收集器是一个后台进程，它捕获发送到标准错误的日志消息并将其重定向到文件中。当您启用收集器时，PostgreSQL 日志将不再重定向到 <code>/var/log/postgresql/postgresql-15-main.log</code> 文件（在 Ubuntu 上），而是存储在单独的目录中。</p>
+<p>在开始修改 PostgreSQL 配置之前，您需要使用以下查询在您的机器上找到它的位置：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SHOW</span><span class="w"> </span><span class="n">config_file</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>               config_file
+-----------------------------------------
+ /etc/postgresql/15/main/postgresql.conf
+</code></pre></div>
+<p>使用 root 权限在您最喜欢的文本编辑器中打开文件路径：</p>
+<p><div class="highlight"><pre><span></span><code>$<span class="w"> </span>sudo<span class="w"> </span>nano<span class="w"> </span>/etc/postgresql/15/main/postgresql.conf
+</code></pre></div>
+该文件包含几个可配置的参数，注释以 <code>#</code> 字符开头。</p>
+<p>现在，找到 <code>logging_collector</code> 选项，取消注释该行并将其打开：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>logging_collector = on
+</code></pre></div>
+<p>保存文件，然后在终端中重新启动 PostgreSQL 服务器（确保在修改此文件中的任何设置后执行此操作）：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>postgresql
+</code></pre></div>
+<p>之后，查看 <code>/var/log/postgresql/postgresql-15-main.log</code> 文件中的最后几行：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>tail<span class="w"> </span>/var/log/postgresql/postgresql-15-main.log
+</code></pre></div>
+<p>您应该看到两行内容，确认日志收集器已打开，并且将来的日志输出现在被放置在 <code>log</code> 目录中：</p>
+<div class="highlight"><pre><span></span><code>. . .
+LOG:  redirecting log output to logging collector process
+HINT:  Future log output will appear in directory &quot;log&quot;.
+</code></pre></div>
+<p>该 <code>log</code> 由 <code>log_directory</code> 参数控制：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_directory = &#39;log&#39;
+</code></pre></div>
+<p>从上面的注释中可以看出，<code>log_directory</code> 控制着 PostgreSQL 日志的写入位置。当提供相对路径时，它相对于 <code>data_directory</code> 参数的值：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>data_directory = &#39;/var/lib/postgresql/15/main&#39;
+</code></pre></div>
+<p>因此，我们可以推断日志文件应该位于 <code>/var/lib/postgresql/15/main/log/</code> 目录中。使用 root 权限执行以下命令来查找：</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>sudo<span class="w"> </span>ls<span class="w"> </span>/var/lib/postgresql/15/main/log/
+</code></pre></div>
+<p>您应该观察到目录中至少有一个日志文件，表明日志收集器正常工作：</p>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>postgresql-2023-07-30_172237.log
+</code></pre></div>
+<p>在下一节中，您将学习如何自定义日志文件名和相关选项。</p>
+<h2 id="_4">自定义日志文件</h2>
+<p>PostgreSQL 允许通过 <code>log_filename</code> 参数自定义日志文件名，默认的文件名如下：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_filename = &#39;postgresql-%Y-%m-%d_%H%M%S.log&#39;
+</code></pre></div>
+<p>此配置生成包含文件创建日期和时间的文件名。<a href="https://pubs.opengroup.org/onlinepubs/009695399/functions/strftime.html">Open Group 的 <code>strftime</code> 规范</a>中列出了支持的 <code>%</code> 转义。</p>
+<p>为了使本教程简单易懂，您可以将日志文件名更改为以下内容：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_filename = &#39;postgresql-%a.log&#39;
+</code></pre></div>
+<p>这将生成具有当天缩写名称的文件，如 <code>postgresql-Thu.log</code> 等。请注意，虽然文件名以 <code>.log</code> 结尾，但如果启用了 JSON 或 CSV 格式，则生成的文件将分别以 <code>.json</code> 和 <code>.csv</code> 结尾（例如 <code>postgresql-Thu.json</code>）。</p>
+<p>如果您想控制每个日志文件的创建方式，您可以更改 <code>log_file_mode</code> 参数：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_file_mode = 0600 # the default
+</code></pre></div>
+<p><code>0600</code> 权限通常用于只有文件所有者才能访问和修改的敏感文件。通过此设置，您只能通过切换到 <code>postgres</code> 用户或使用 root 权限来访问、查看或修改此文件。这是一个很好的安全措施，因为 PostgreSQL 日志通常包含敏感信息。</p>
+<h2 id="_5">设置日志文件轮换</h2>
+<p>您可能已经知道，如果没有适当的<a href="https://betterstack.com/community/guides/logging/how-to-manage-log-files-with-logrotate-on-ubuntu-20-04/">日志轮换策略</a>，日志文件可能会很快耗尽所有磁盘空间，对于<a href="https://betterstack.com/community/guides/logging/how-to-start-logging-with-postgresql/#how-to-log-postgresql-queries">打开查询日志记录</a>的 PostgreSQL 日志尤其如此。</p>
+<p>幸运的是，PostgreSQL 提供了一些配置选项来控制其日志文件的轮换方式：</p>
+<ul>
+<li><code>log_rotation_age</code>：这指定了日志文件在轮换之前的最大使用期限。默认值为 24 小时 (<code>1d</code>)。它可以接受带有单位的整数值，例如 <code>m</code> 表示分钟、<code>d</code> 表示天、<code>w</code> 表示周等。如果未提供单位，则假定为分钟。您还可以通过将其设置为 <code>0</code> 来禁用基于时间的日志轮换。</li>
+<li><code>log_rotation_size</code>：此值决定了日志文件在轮换为新日志文件之前的最大大小。默认值为 10 兆字节 (<code>10MB</code>)。如果要禁用基于大小的日志轮换，请将其设置为 <code>0</code>。</li>
+<li><code>log_truncate_on_rotation</code>：仅当对日志文件采用基于时间的轮换时此参数才适用。它用于覆盖任何现有的同名日志文件，而不是附加到文件。当您的 <code>log_filename</code> 参数类似于 <code>postgresql-%a.log</code> 时，这很有用，它会生成像 <code>postgresql-Mon.log</code>、<code>postgresql-Tue.log</code> 等文件。启用此选项（与将 <code>log_rotation_age</code> 设置为 <code>7d</code> 一起）可确保每周的日志覆盖前一周的日志，但文件名保持不变。</li>
+</ul>
+<p>如您所见，上述选项提供了基本的日志文件轮换功能。 如果您需要更多自定义选项，例如自动压缩轮换文件的功能，请关闭 PostgreSQL 的日志文件轮换选项，然后使用 <a href="https://betterstack.com/community/guides/logging/how-to-manage-log-files-with-logrotate-on-ubuntu-20-04/"><code>logrotate</code></a> 程序。</p>
+<h2 id="_6">日志格式</h2>
+<p>PostgreSQL 通过 <code>log_destination</code> 参数控制日志格式，默认值为 <code>stderr</code>。您还可以使用 <code>jsonlog</code> 和 <code>csvlog</code> 选项分别以 JSON 和 CSV 格式输出日志。稍后将提供更多信息。</p>
+<p><div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_destination = &#39;stderr&#39;
+</code></pre></div>
+当 <code>stderr</code> 启用时，您可以通过 <code>log_line_prefix</code> 参数修改其输出，该参数包含 <code>printf</code> 样式的字符串，用于确定日志信息头需要包含的内容。在 <code>psql</code> 中输入以下内容来找出其当前值：</p>
+<p><div class="highlight"><pre><span></span><code><span class="k">SHOW</span><span class="w"> </span><span class="n">log_line_prefix</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code> log_line_prefix
+------------------
+ %m [%p] %q%u@%d
+(1 row)
+</code></pre></div></p>
+<p>该值确保发送到 <code>stderr</code> 的每个日志记录都包含以下详细信息：</p>
+<ul>
+<li><code>%m</code>：事件的时间（以毫秒为单位）。</li>
+<li><code>%p</code>：创建日志的特定 PostgreSQL 实例的进程 ID。</li>
+<li><code>%q</code>：此标记不产生任何输出，但会通知后台进程（background processes）忽略此后的所有内容。后续的 <code>％u@％d</code> 仅在会话进程（backend processes）中可用。</li>
+<li><code>%u</code>：触发事件的连接用户。</li>
+<li><code>%d</code>：用户连接到的数据库。</li>
+</ul>
+<p>使用上述格式生成的日志条目如下所示：</p>
+<div class="highlight"><pre><span></span><code>2023-07-30 08:31:50.628 UTC [2176] postgres@chinook LOG:  statement: select albumid, title from album where artistid = 2;
+</code></pre></div>
+<p>注意，<code>postgres@chinook</code> 之后的所有内容不受 <code>log_line_prefix</code> 控制，并且无法自定义。它由日志级别和日志消息组成，在本例中是 <code>SELECT</code> 语句。</p>
+<h3 id="_7">自定义日志格式</h3>
+<p>修改 <code>stderr</code> 日志格式的唯一方法是通过 <code>log_line_prefix</code> 设置。请参阅<a href="https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-LOG-LINE-PREFIX">可用的转义序列的完整列表</a>。我们建议包括以下变量：</p>
+<ul>
+<li><code>%a</code>：应用程序名称（使用 PostgreSQL 连接字符串中的 <code>application_name</code> 参数）。</li>
+<li><code>%p</code>：PostgreSQL 实例的进程 ID。</li>
+<li><code>%u</code>：已连接的用户名。</li>
+<li><code>%d</code>：数据库名。</li>
+<li><code>%m</code>：事件发生的时间，以毫秒为单位（如果过您更喜欢 UNIX 纪元，则使用 <code>%n</code>）。</li>
+<li><code>%q</code>：将仅会话变量与在所有上下文中有效的变量分开。</li>
+<li><code>%i</code>：标识已执行的 SQL 查询的命令标签。</li>
+<li><code>%e</code>：相关的 <a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">PostgreSQL 错误代码</a>。</li>
+<li><code>%c</code>：当前会话 ID。</li>
+</ul>
+<p>为了使日志更易于阅读和解析，您可以在每个变量前加上一个键，如下所示：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_line_prefix = &#39;time=%m pid=%p error=%e sess_id=%c %qtag=%i usr=%u db=%d app=%a &#39;
+</code></pre></div>
+<p>建议在结束引号前使用空格（或其他字符）将日志前缀与实际日志消息分开。完成此配置后，重新启动 PostgreSQL 服务器后您将看到以下格式的日志：</p>
+<div class="highlight"><pre><span></span><code>time=2023-07-30 22:02:27.929 UTC pid=17678 error=00000 sess_id=64c6ddf3.450e LOG:  database system is ready to accept connections
+time=2023-07-30 22:03:33.613 UTC pid=17769 error=00000 sess_id=64c6de20.4569 tag=idle usr=postgres db=chinook app=psql LOG:  statement: UPDATE album SET title = &#39;Audioslave&#39; WHERE albumid = 10;
+</code></pre></div>
+<p>上面的第一条记录是由非会话进程（又称后台进程）创建的。这些进程执行维护活动、后台任务和其他内部功能来支持数据库的运行。<code>%q</code> 转义的包含会排除其后的所有内容，因为这样的序列在非会话进程中无效。如不包含 <code>%q</code>，则 <code>tag</code>、<code>usr</code>、<code>db</code> 和 <code>app</code> 将出现在日志中但为空。</p>
+<p>另一方面，会话进程（又名用户后端进程）是直接与特定用户和数据库绑定的进程，它们处理客户端应用程序发出的实际查询和命令。在这种情况下，所有转义序列都是有效的，因此 <code>%q</code> 将不起作用。</p>
+<h3 id="_8">自定义时区</h3>
+<p><code>log_timezone</code> 参数控制用于记录时间戳信息的时区。Ubuntu 中的默认值是 Etc/UTC，即 <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time">UTC 时间</a>。如果您希望时间与服务器时间相对应，请相应地更改此值：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_timezone = &#39;Europe/Helsinki&#39;
+</code></pre></div>
+<p>但是，<a href="https://betterstack.com/community/guides/logging/log-formatting/#always-include-the-timestamp">我建议坚持使用 UTC 时间</a>，以便于日志关联和规范化。</p>
+<h2 id="json">JSON 结构化日志</h2>
+<p>自 2008 年 2 月发布 <a href="https://www.postgresql.org/docs/release/8.3.0/">v8.3</a> 以来，PostgreSQL 就一直支持 CSV 格式的日志记录，但直到最近在 <a href="https://www.postgresql.org/about/news/postgresql-15-released-2526/">v15</a> 版本中才支持 JSON。您现在可以通过将 <code>jsonlog</code> 添加到 <code>log_destination</code> 参数中来将 PostgreSQL 日志格式化为 JSON 格式，如下所示：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_destination = &#39;stderr,jsonlog&#39;
+</code></pre></div>
+<p>当您重新启动服务器并查看日志目录时，您将观察到两个具有相同名称但不同扩展名（<code>.log</code> 和 <code>.json</code>）的新日志文件。这些文件包含相同的日志，但格式不同。<code>.log</code> 文件与以前一样遵循 <code>stderr</code> 格式，而 <code>.json</code> 文件可预见地包含 JSON 日志。</p>
+<p>以下是具有相同日志的两个文件的比较：</p>
+<div class="highlight"><span class="filename">/var/lib/postgresql/15/main/log/postgresql-Sun.log</span><pre><span></span><code>time=2023-07-30 22:48:01.817 UTC pid=18254 error=00000 sess_id=64c6e836.474e tag=idle usr=postgres db=chinook app=psql LOG:  statement: SHOW data_directory;
+time=2023-07-30 22:49:21.808 UTC pid=18254 error=00000 sess_id=64c6e836.474e tag=idle usr=postgres db=chinook app=psql LOG:  statement: TABLE albu limit 10;
+time=2023-07-30 22:49:21.808 UTC pid=18254 error=42P01 sess_id=64c6e836.474e tag=SELECT usr=postgres db=chinook app=psql ERROR:  relation &quot;albu&quot; does not exist at character 7
+time=2023-07-30 22:49:21.808 UTC pid=18254 error=42P01 sess_id=64c6e836.474e tag=SELECT usr=postgres db=chinook app=psql STATEMENT:  TABLE albu limit 10;
+</code></pre></div>
+<p>这些日志根据前面演示的 <code>log_line_prefix</code> 参数进行格式化。另一方面，JSON 日志包含除空值字段之外的所有<a href="https://www.postgresql.org/docs/current/runtime-config-logging.html#RUNTIME-CONFIG-LOGGING-JSONLOG">可用字段</a>：</p>
+<div class="highlight"><span class="filename">/var/lib/postgresql/15/main/log/postgresql-Sun.json</span><pre><span></span><code>{&quot;timestamp&quot;:&quot;2023-07-30 22:48:01.817 UTC&quot;,&quot;user&quot;:&quot;postgres&quot;,&quot;dbname&quot;:&quot;chinook&quot;,&quot;pid&quot;:18254,&quot;remote_host&quot;:&quot;[local]&quot;,&quot;session_id&quot;:&quot;64c6e836.474e&quot;,&quot;line_num&quot;:1,&quot;ps&quot;:&quot;idle&quot;,&quot;session_start&quot;:&quot;2023-07-30 22:46:14 UTC&quot;,&quot;vxid&quot;:&quot;4/3&quot;,&quot;txid&quot;:0,&quot;error_severity&quot;:&quot;LOG&quot;,&quot;message&quot;:&quot;statement: SHOW data_directory;&quot;,&quot;application_name&quot;:&quot;psql&quot;,&quot;backend_type&quot;:&quot;client backend&quot;,&quot;query_id&quot;:0}
+{&quot;timestamp&quot;:&quot;2023-07-30 22:49:21.808 UTC&quot;,&quot;user&quot;:&quot;postgres&quot;,&quot;dbname&quot;:&quot;chinook&quot;,&quot;pid&quot;:18254,&quot;remote_host&quot;:&quot;[local]&quot;,&quot;session_id&quot;:&quot;64c6e836.474e&quot;,&quot;line_num&quot;:2,&quot;ps&quot;:&quot;idle&quot;,&quot;session_start&quot;:&quot;2023-07-30 22:46:14 UTC&quot;,&quot;vxid&quot;:&quot;4/4&quot;,&quot;txid&quot;:0,&quot;error_severity&quot;:&quot;LOG&quot;,&quot;message&quot;:&quot;statement: TABLE albu limit 10;&quot;,&quot;application_name&quot;:&quot;psql&quot;,&quot;backend_type&quot;:&quot;client backend&quot;,&quot;query_id&quot;:0}
+{&quot;timestamp&quot;:&quot;2023-07-30 22:49:21.808 UTC&quot;,&quot;user&quot;:&quot;postgres&quot;,&quot;dbname&quot;:&quot;chinook&quot;,&quot;pid&quot;:18254,&quot;remote_host&quot;:&quot;[local]&quot;,&quot;session_id&quot;:&quot;64c6e836.474e&quot;,&quot;line_num&quot;:3,&quot;ps&quot;:&quot;SELECT&quot;,&quot;session_start&quot;:&quot;2023-07-30 22:46:14 UTC&quot;,&quot;vxid&quot;:&quot;4/4&quot;,&quot;txid&quot;:0,&quot;error_severity&quot;:&quot;ERROR&quot;,&quot;state_code&quot;:&quot;42P01&quot;,&quot;message&quot;:&quot;relation \&quot;albu\&quot; does not exist&quot;,&quot;statement&quot;:&quot;TABLE albu limit 10;&quot;,&quot;cursor_position&quot;:7,&quot;application_name&quot;:&quot;psql&quot;,&quot;backend_type&quot;:&quot;client backend&quot;,&quot;query_id&quot;:0}
+</code></pre></div>
+<p>敏锐的观察者会注意到 <code>error=42P01</code> 事件在 <code>stderr</code> 格式下包含两个日志条目。但是，同一事件以 JSON 格式则只出现在单个日志中。</p>
+<p>以 <a href="https://betterstack.com/community/guides/logging/log-formatting/#prefer-structured-formats-over-plaintext">JSON 格式记录日志</a>的明显优势是日志可以被日志管理工具自动解析和分析。但是，字段无法以任何方式进行自定义。您无法排除字段或自定义其名称，这一点与 <code>stderr</code> 格式不同，后者在这方面更加灵活。如果您确实需要这样的功能，您可以采用<a href="https://betterstack.com/community/guides/logging/log-shippers-explained/">日志发送器来转换日志</a>，然后再将其发送到最终目的地。</p>
+<p>其余示例将继续以 <code>stderr</code> 格式显示，但为了简洁起见，不显示 <code>log_line_prefix</code>。</p>
+<h2 id="postgresql_3">如何记录 PostgreSQL 查询</h2>
+<p><code>log_statement</code> 参数控制在服务器日志文件中记录哪些 SQL 查询。其有效选项如下：</p>
+<ul>
+<li><code>none (default)</code>：不记录任何 SQL 查询。</li>
+<li><code>ddl</code>：仅记录数据定义语言（DDL）语句，例如修改数据库架构的 <code>CREATE</code>，<code>ALTER</code>，和 <code>DROP</code> 语句。</li>
+<li><code>mod</code>：除了 DDL 语句之外，此值还记录数据修改语言 (DML) 语句，例如 <code>INSERT</code>、<code>UPDATE</code> 和 <code>DELETE</code>。</li>
+<li><code>all</code>：记录对服务器发出的所有 SQL 查询，除了由于解析错误而在执行阶段之前失败的查询（参见 <code>log_min_error_statement</code>）。</li>
+</ul>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_statement = mod
+</code></pre></div>
+<p>在生产中使用 <code>all</code> 设置将在繁忙的系统上生成大量数据，这可能会因将每个查询写入磁盘的开销而降低数据库的速度。如果您记录所有查询的动机是为了审计，请考虑使用 <a href="https://github.com/pgaudit/pgaudit">pgAudit</a>，因为它为配置审计日志提供了更好的控制。</p>
+<h3 id="_9">记录查询持续时间</h3>
+<p>记录查询日志的主要用例之一是识别需要优化的慢查询。但是，<code>log_statement</code> 参数不会在其输出中跟踪查询持续时间。您需要使用 <code>log_duration</code> 参数来实现此目的。它是一个布尔值，表示它可以是关闭（<code>0</code>）或打开（<code>1</code>）：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_duration = 1
+</code></pre></div>
+<p>重启服务器并再次查看日志（译者注：这里可以直接重新加载配置文件即可生效）。您应该开始观察包含以毫秒为单位的持续时间值的条目：</p>
+<div class="highlight"><pre><span></span><code>LOG:  statement: UPDATE album SET title = &#39;Audioslave&#39; WHERE albumid = 10;
+<span class="hll">LOG:  duration: 18.498 ms
+</span></code></pre></div>
+<p>当打开 <code>log_duration</code> 时，服务器执行的所有语句都会生成持续时间日志，无一例外（即使是简单的 <code>SELECT 1</code>）。这将产生大量日志，可能损害性能并不必要地消耗磁盘空间。</p>
+<p><code>log_duration</code> 的另一个问题是它取决于 <code>log_statement</code> 参数，您可能不知道哪个查询产生了持续时间日志。为了测试这一点，请将 <code>log_statement</code> 设置为 <code>ddl</code>，并保持 <code>log_duration</code> 处于启用状态。重新启动服务器并在 <code>psql</code> 中输入以下查询：</p>
+<div class="highlight"><pre><span></span><code><span class="k">UPDATE</span><span class="w"> </span><span class="n">album</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Audioslave&#39;</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">albumid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</code></pre></div>
+<p>查询成功完成后，您将看到以下日志：</p>
+<div class="highlight"><pre><span></span><code>LOG:  duration: 13.492 ms
+</code></pre></div>
+<p>至关重要的是，产生该日志的语句根本没有被记录下来，这使得它实际上毫无用处。如果必须使用 <code>log_duration</code>，请确保 <code>log_statement</code> 也设置为 <code>all</code>，以便每个持续时间日志都可以与生成它的语句相关联。</p>
+<p>另一种方法是关闭 <code>log_duration</code> 并启用 <code>log_min_duration_statement</code>：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_duration = 0
+log_min_duration_statement = 0
+</code></pre></div>
+<p><code>log_min_duration_statement</code> 参数不是布尔值。它接受以毫秒为单位的整数值，并为执行时间超过指定值的查询生成日志。当它被设置为 <code>0</code>（如上所述）时，所有已完成语句的持续时间都会被记录。</p>
+<p>应用上面更新的配置并重新启动 PostgreSQL 服务器，保持 <code>log_statement</code> 处于 <code>ddl</code> 模式。之后，重复 <code>UPDATE</code> 查询。您应该观察到如下所示的持续时间日志：</p>
+<div class="highlight"><pre><span></span><code>LOG:  duration: 13.504 ms  statement: UPDATE album SET title = &#39;Audioslave&#39; WHERE albumid = 10;
+</code></pre></div>
+<p>这是对 <code>log_duration</code> 输出的改进，因为产生持续时间日志的查询是可见的。</p>
+<p>但仍然存在一个弱点，那就是您无法在查询完成之前在日志文件中看到该查询。如果服务器在查询完成之前崩溃，您将不知道崩溃之前正在运行哪些查询，因为没有记录。</p>
+<p>但是，如果查询生成自己的日志，日志记录行为就会发生变化。要观察这一点，请将 <code>log_statement</code> 更改为 <code>all</code>，然后重新启动服务器。在 <code>psql</code> 中运行 <code>SELECT pg_sleep(5)</code> 并观察日志。</p>
+<p>您应该立即看到以下行：</p>
+<div class="highlight"><pre><span></span><code>LOG:  statement: SELECT pg_sleep(5);
+</code></pre></div>
+<p>五秒钟后，会出现下面一行：</p>
+<div class="highlight"><pre><span></span><code>LOG:  duration: 5005.975 ms
+</code></pre></div>
+<p>通过这种配置，如果在五秒钟过去之前发生问题，您至少会知道哪些查询可能在事件中发挥了作用。</p>
+<p><a href="https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-LOG-MIN-DURATION-STATEMENT">PostgreSQL 文档</a>建议您在 <code>log_line_prefix</code> 中包含进程和会话 ID，以便您在读取和分析日志时可以轻松关联两个日志。</p>
+<h3 id="_10">记录慢查询</h3>
+<p>记录服务器上所有查询的持续时间必然会使您的日志文件充斥着大量没有多大价值的琐碎日志。仅记录运行缓慢的查询更有用，以便可以相应地调查和优化它们。由于记录的日志量将大幅减少，因此它还可以减轻 PostgreSQL 服务器的压力。</p>
+<p>慢查询的产生显然是取决于应用程序的类型和具体的工作负载。确保使用一个可以捕获可能导致性能瓶颈的资源密集型查询的值。连接大型表、执行复杂计算或涉及递归的查询是需要监控的主要候选对象。</p>
+<p>对于交互式应用程序来说，几百毫秒的阈值可能是一个很好的起点，然后您可以随时进行调整：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_min_duration_statement = 250
+</code></pre></div>
+<p>使用此配置，只有执行时间超过指定值（250ms）的查询才会被记录。例如：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">pg_sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>LOG:  statement: SELECT pg_sleep(1);
+LOG:  duration: 1013.675 ms
+</code></pre></div>
+<h2 id="postgresql_4">PostgreSQL 中的消息严重性级别</h2>
+<p>PostgreSQL 使用以下日志级别来表明其生成的每个日志记录的严重性：</p>
+<ul>
+<li><code>DEBUG5</code>，<code>DEBUG4</code>，<code>DEBUG3</code>，<code>DEBUG2</code>，<code>DEBUG1</code>：这些级别用于记录对故障排除有用的详细信息，其中 <code>DEBUG5</code> 是最详细的，而 <code>DEBUG1</code> 是最不详细的。</li>
+<li><code>INFO</code>：报告用户隐式请求的信息。</li>
+<li><code>NOTICE</code>：报告可能对用户有帮助的详细信息。</li>
+<li><code>WARNING</code>：警告潜在问题，例如在事务块之外使用 <code>COMMIT</code>。</li>
+<li><code>ERROR</code>：报告中止当前命令的错误。</li>
+<li><code>LOG</code>：报告一般数据库活动。</li>
+<li><code>FATAL</code>：报告中止当前会话但其他会话保持活动状态的错误。</li>
+<li><code>PANIC</code>：报告中止所有现有数据库会话的严重错误。</li>
+</ul>
+<p>以下是标有各个严重性级别的消息的示例：</p>
+<div class="highlight"><pre><span></span><code>DEBUG:  server process (PID 13557) exited with exit code 0
+INFO:  vacuuming &quot;chinook.public.album&quot;
+NOTICE:  identifier &quot;very_very_very_very_very_very_very_very_long_table_name_with_more_than_63_characters&quot; will be truncated to &quot;very_very_very_very_very_very_very_very_long_table_name_with_mo&quot;
+WARNING:  SET LOCAL can only be used in transaction blocks
+LOG:  statement: UPDATE album SET title = &#39;Audioslave&#39; WHERE albumid = 10;
+ERROR:  relation &quot;albu&quot; does not exist at character 7
+FATAL:  role &quot;root&quot; does not exist
+PANIC: database system shutdown requested
+</code></pre></div>
+<p>默认日志级别通过 <code>log_min_messages</code> 设置设置为 <code>WARNING</code>，我建议保持这种状态。</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_min_messages = warning
+</code></pre></div>
+<h2 id="_11">减少日志详细程度</h2>
+<p>PostgreSQL 允许您通过 <code>log_error_verbosity</code> 设置来控制事件日志的详细程度，与其名称所暗示的不同，该设置适用于每条已记录的消息。可能的值包括 <code>terse</code>、<code>default</code> 和 <code>verbose</code>。</p>
+<p>使用 <code>default</code> 设置，您将看到某些查询带有额外的 <code>DETAIL</code>、<code>HINT</code>、<code>QUERY</code> 或 <code>CONTEXT</code> 信息。</p>
+<div class="highlight"><pre><span></span><code>LOG:  statement: DROP table album;
+ERROR:  cannot drop table album because other objects depend on it
+DETAIL:  constraint fk_trackalbumid on table track depends on table album
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+STATEMENT:  DROP table album;
+</code></pre></div>
+<p>此处所有五个条目均由同一查询产生。如果 <code>log_error_verbosity</code> 设置为 <code>terse</code>，则会删除 <code>DETAIL</code> 和 <code>HINT</code> 行。选项 <code>verbose</code> 则将包括 <code>default</code> 的所有内容以及有关错误的更低级详细信息，例如其源代码文件名、函数名称和行号：</p>
+<div class="highlight"><pre><span></span><code>LOCATION:  reportDependentObjects, dependency.c:1189
+</code></pre></div>
+<p>请注意，如果您以 JSON 格式记录日志，则 <code>DETAIL</code>、<code>HINT</code> 和 <code>STATEMENT</code> 将包含在同一个日志条目中，并且 <code>LOCATION</code> 将分为 <code>func_name</code>、<code>file_name</code> 和 <code>file_line_num</code> 属性：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="s2">&quot;2023-08-03 15:56:26.988 UTC&quot;</span><span class="p">,</span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;postgres&quot;</span><span class="p">,</span><span class="nt">&quot;dbname&quot;</span><span class="p">:</span><span class="s2">&quot;chinook&quot;</span><span class="p">,</span><span class="nt">&quot;pid&quot;</span><span class="p">:</span><span class="mi">14155</span><span class="p">,</span><span class="nt">&quot;remote_host&quot;</span><span class="p">:</span><span class="s2">&quot;[local]&quot;</span><span class="p">,</span><span class="nt">&quot;session_id&quot;</span><span class="p">:</span><span class="s2">&quot;64cbce27.374b&quot;</span><span class="p">,</span><span class="nt">&quot;line_num&quot;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span><span class="nt">&quot;ps&quot;</span><span class="p">:</span><span class="s2">&quot;DROP TABLE&quot;</span><span class="p">,</span><span class="nt">&quot;session_start&quot;</span><span class="p">:</span><span class="s2">&quot;2023-08-03 15:56:23 UTC&quot;</span><span class="p">,</span><span class="nt">&quot;vxid&quot;</span><span class="p">:</span><span class="s2">&quot;3/8&quot;</span><span class="p">,</span><span class="nt">&quot;txid&quot;</span><span class="p">:</span><span class="mi">16414</span><span class="p">,</span><span class="nt">&quot;error_severity&quot;</span><span class="p">:</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span><span class="nt">&quot;state_code&quot;</span><span class="p">:</span><span class="s2">&quot;2BP01&quot;</span><span class="p">,</span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="s2">&quot;cannot drop table album because other objects depend on it&quot;</span><span class="p">,</span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="s2">&quot;constraint fk_trackalbumid on table track depends on table album&quot;</span><span class="p">,</span><span class="nt">&quot;hint&quot;</span><span class="p">:</span><span class="s2">&quot;Use DROP ... CASCADE to drop the dependent objects too.&quot;</span><span class="p">,</span><span class="nt">&quot;statement&quot;</span><span class="p">:</span><span class="s2">&quot;DROP table album;&quot;</span><span class="p">,</span><span class="nt">&quot;func_name&quot;</span><span class="p">:</span><span class="s2">&quot;reportDependentObjects&quot;</span><span class="p">,</span><span class="nt">&quot;file_name&quot;</span><span class="p">:</span><span class="s2">&quot;dependency.c&quot;</span><span class="p">,</span><span class="nt">&quot;file_line_num&quot;</span><span class="p">:</span><span class="mi">1189</span><span class="p">,</span><span class="nt">&quot;application_name&quot;</span><span class="p">:</span><span class="s2">&quot;psql&quot;</span><span class="p">,</span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="s2">&quot;client backend&quot;</span><span class="p">,</span><span class="nt">&quot;query_id&quot;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+</code></pre></div>
+<h2 id="_12">记录连接和断开连接</h2>
+<p>以下设置控制 PostgreSQL 如何记录客户端连接和断开连接。默认情况下，这两项均处于关闭状态：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_connections = off
+log_disconnections = off
+</code></pre></div>
+<p>开启 <code>log_connections (1)</code> 将记录每次尝试连接到服务器以及客户端身份验证和授权的完成情况：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_connections = 1
+</code></pre></div>
+<p><div class="highlight"><pre><span></span><code>LOG:  connection received: host=[local]
+LOG:  connection authenticated: identity=&quot;postgres&quot; method=peer (/etc/postgresql/15/main/pg_hba.conf:90)
+LOG:  connection authorized: user=postgres database=chinook application_name=psql
+</code></pre></div>
+从安全角度来看，这些信息很有用，因为您可以看到谁在连接到您的系统以及从哪里连接。如果与服务器有多个短暂的连接并且未使用连接池，则会导致大量日志。</p>
+<p><code>log_disconnections</code> 参数的工作原理类似，它包括会话持续时间：</p>
+<div class="highlight"><span class="filename">/etc/postgresql/15/main/postgresql.conf</span><pre><span></span><code>log_disconnections = 1
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>LOG:  disconnection: session time: 0:00:02.824 user=postgres database=chinook host=[local]
+</code></pre></div>
+<h2 id="_13">创建自定义日志消息</h2>
+<p>到目前为止，我们已经讨论了 PostgreSQL 服务器生成的各种类型的日志以及如何定制它们。如果您想在 SQL 查询中或在使用 <a href="https://www.postgresql.org/docs/current/plpgsql-overview.html">PL/pgSQL</a> 编写触发函数时创建自己的日志消息，您可以按如下方式使用 <a href="https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html">RAISE</a> 语句：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="k">REPLACE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">custom_logs_func</span><span class="p">()</span>
+<span class="k">RETURNS</span><span class="w"> </span><span class="k">TRIGGER</span><span class="w"> </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">PLPGSQL</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">$$</span>
+<span class="k">BEGIN</span>
+<span class="w">    </span><span class="k">RAISE</span><span class="w"> </span><span class="n">LOG</span><span class="w"> </span><span class="s1">&#39;This is an informational message&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">RAISE</span><span class="w"> </span><span class="n">WARNING</span><span class="w"> </span><span class="s1">&#39;Something unexpected happened&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">RAISE</span><span class="w"> </span><span class="k">EXCEPTION</span><span class="w"> </span><span class="s1">&#39;An unexpected error&#39;</span><span class="p">;</span>
+<span class="k">END</span><span class="p">;</span>
+<span class="s">$$</span><span class="p">;</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="k">REPLACE</span><span class="w"> </span><span class="k">TRIGGER</span><span class="w"> </span><span class="n">UPDATE_LAST_EDITED_TIME</span><span class="w"> </span><span class="k">BEFORE</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">ALBUM</span>
+<span class="k">FOR</span><span class="w"> </span><span class="k">EACH</span><span class="w"> </span><span class="k">ROW</span><span class="w"> </span><span class="k">EXECUTE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">custom_logs_func</span><span class="p">();</span>
+</code></pre></div>
+<p>根据您的 <code>log_min_messages</code> 设置，在执行 <code>custom_logs_func()</code> 时，您将在日志文件中观察到以下内容：</p>
+<div class="highlight"><pre><span></span><code>LOG:  This is an informational message
+WARNING:  Something unexpected happened
+ERROR:  An unexpected error
+</code></pre></div>
+<h2 id="pgbadger">使用 PgBadger 分析日志文件</h2>
+<p>PgBadger 是 PostgreSQL 日志文件的命令行日志分析工具。它旨在解析和分析 PostgreSQL 日志文件，提取有价值的见解并生成有关数据库活动、性能和使用模式的详细报告。它可以生成包含大量统计数据的综合 HTML 报告，例如：</p>
+<ul>
+<li>解析和处理的日志条目总数。</li>
+<li>最慢的查询及其执行时间。</li>
+<li>随时间变化的连接数。</li>
+<li>最常见的错误消息及其发生的次数。</li>
+<li>事务的提交和回滚统计信息。</li>
+<li>临时文件使用率最高的表。</li>
+<li>查询和会话持续时间的直方图。</li>
+<li>涉及热门查询的用户和应用程序。</li>
+<li>最耗时的 <code>prepare</code>/<code>bind</code> 查询。</li>
+<li>自动清理进程的数量及其执行时间。</li>
+<li>以及更多！</li>
+</ul>
+<p>安装 <code>pgbadger</code> 后，请查看其<a href="https://github.com/darold/pgbadger#postgresql-configuration">推荐的日志配置设置</a>，并在 PostgreSQL 配置文件中进行相应的配置。请注意，这些设置是为了产生尽可能多的信息，以便 pgBadger 可以有效地分析数据库活动。</p>
+<p>该工具提供了许多选项，但生成 HTML 报告的最基本设置是提供配置的日志行前缀、日志文件以及报告的所需名称/位置。在撰写本文时，它仅适用于 <code>stderr</code> 和 CSV 格式，但不适用于 JSON。</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>sudo<span class="w"> </span>pgbadger<span class="w"> </span>--prefix<span class="w"> </span><span class="s1">&#39;time=%m pid=%p error=%e sess_id=%c %qtag=%i usr=%u db=%d app=%a &#39;</span><span class="w"> </span>/var/lib/postgresql/15/main/log/postgresql-Thu.log<span class="w"> </span>-o<span class="w"> </span>postgresql.html
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code>[========================&gt;] Parsed 289019 bytes of 289019 (100.00%), queries: 102, events: 42
+LOG: Ok, generating html report...
+</code></pre></div>
+<p>当您在浏览器中打开 HTML 文件时，您应该会看到如下报告：</p>
+<p><a class="glightbox" href="../../../../imgs/pgbadger.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/pgbadger.avif" /></a></p>
+<p>请参阅 <a href="https://pgbadger.darold.net/examples/report/index.html">PgBadger 网站上的示例</a>及其<a href="https://pgbadger.darold.net/documentation.html">文档</a>以了解更多详细信息。</p>
+<h2 id="_14">总结</h2>
+<p>如果配置正确，PostgreSQL 日志是深入了解数据库活动和性能的有效方法。这也许不是一件光鲜的事情，但坚持下去肯定会获得回报。正确设置可能需要一些反复试验，但我希望本文能为您指明正确的方向。</p>
+<blockquote>
+<p>作者：Ayooluwa Isaiah<br>
+原文：<a href="https://betterstack.com/community/guides/logging/how-to-start-logging-with-postgresql/">https://betterstack.com/community/guides/logging/how-to-start-logging-with-postgresql/</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

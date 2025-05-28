@@ -1,0 +1,2240 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../22/some-of-my-favorite-things-postgres-queries/">
+      
+      
+        <link rel="next" href="../../../../2025/01/17/idle-transactions-cause-table-bloat-wait-what/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>SQL 查询优化：全面的开发者指南 - PostgreSQL 翻译</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sql" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-header__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostgreSQL 翻译
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SQL 查询优化：全面的开发者指南
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: drak)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="PostgreSQL 翻译" class="md-nav__button md-logo" aria-label="PostgreSQL 翻译" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostgreSQL 翻译
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    主页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    归档
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            归档
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2025
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    2024
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    分类
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            分类
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/aggregation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/bgwriter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bgwriter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/checkpointer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checkpointer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/function/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Function
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/idle-transaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Idle Transaction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/locks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Locks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Log
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/overlaps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overlaps
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/regexp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regexp
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/table-bloat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table Bloat
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tuning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#select-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      如何优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="如何优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过了解查询执行计划来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过了解查询执行计划来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过使用索引优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过使用索引优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过改进连接来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过改进连接来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过选择内连接来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过选择内连接来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过对连接使用相同的列类型来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过对连接使用相同的列类型来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过避免使用连接函数来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过避免使用连接函数来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过避免连接来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过改进过滤来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过改进过滤来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过避免在过滤中使用函数来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过避免在过滤中使用函数来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过改进子查询来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过改进子查询来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过对结果集进行分页优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过对结果集进行分页优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#having-where-select-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过将过滤器从 HAVING 移至 WHERE 子句来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过将过滤器从 HAVING 移至 WHERE 子句来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过定义要检索的列来优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过定义要检索的列来优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用聚合函数优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用聚合函数优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_29" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用窗口函数优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用窗口函数优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_30" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_31" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_32" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用分区优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用分区优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_33" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_34" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-sql_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用物化视图优化 SELECT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用物化视图优化 SELECT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_35" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_36" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_37" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#insert-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      如何优化 INSERT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="如何优化 INSERT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#insert-sql_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用专用功能优化 INSERT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用专用功能优化 INSERT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_38" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_39" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_40" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#insert-sql_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过删除不必要的索引来优化 INSERT SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过删除不必要的索引来优化 INSERT SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_41" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_42" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_43" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#insert-sql-select" class="md-nav__link">
+    <span class="md-ellipsis">
+      优化 INSERT SQL 查询，就像它是 SELECT 语句一样
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="优化 INSERT SQL 查询，就像它是 SELECT 语句一样">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_44" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_45" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delete-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      如何优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="如何优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#delete-sql_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过删除不必要的索引来优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过删除不必要的索引来优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_46" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_47" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truncate-delete-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用 TRUNCATE 优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用 TRUNCATE 优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_48" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_49" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_50" class="md-nav__link">
+    <span class="md-ellipsis">
+      专业提示
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-sql_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      使用表分区优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="使用表分区优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_51" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_52" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-sql_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过将语句拆分成块来优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过将语句拆分成块来优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_53" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_54" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-delete-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过减少执行 DELETE 的频率来优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过减少执行 DELETE 的频率来优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_55" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_56" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-delete-sql_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      通过不执行 DELETE 来优化 DELETE SQL 查询
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="通过不执行 DELETE 来优化 DELETE SQL 查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_57" class="md-nav__link">
+    <span class="md-ellipsis">
+      警告
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_58" class="md-nav__link">
+    <span class="md-ellipsis">
+      黄金法则
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_59" class="md-nav__link">
+    <span class="md-ellipsis">
+      总结
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../.." class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2024-12-23 00:00:00+00:00" class="md-ellipsis">2024年12月23日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../../../../category/performance/">Performance</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 8 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+
+<h1 id="sql">SQL 查询优化：全面的开发者指南</h1>
+<p>面向开发人员的 SQL 优化指南。其中包含最佳实践、警告和专业提示，可加快 SQL 查询优化。</p>
+<p>当您有一个数据库时，您将如何优化 SQL 性能？要回答这个问题，您需要投入大量的时间和精力来了解工作负载和性能模式、评估性能下降情况并采取纠正措施。但是，您可以实施标准实践来提高性能。本 SQL 优化指南将展示一些适用于几乎所有数据库的最佳实践，并且可以作为优化数据库工作负载的良好起点。</p>
+<!-- more -->
+
+<h2 id="select-sql">如何优化 <code>SELECT</code> SQL 查询</h2>
+<h3 id="select-sql_1">通过了解查询执行计划来优化 <code>SELECT</code> SQL 查询</h3>
+<p>所有现代数据库（例如 MySQL 和 PostgreSQL®）都会根据所涉及的各个表的基数以及可用的辅助数据结构（例如索引或分区）来定义最佳查询执行计划。<a href="https://dev.mysql.com/doc/refman/8.0/en/using-explain.html">MySQL</a> 和 <a href="https://www.postgresql.org/docs/current/sql-explain.html">PostgreSQL</a> 都提供了一个名为 <code>EXPLAIN</code> 的命令来显示语句的执行计划。从执行计划中，您可以了解表是如何连接的，是否使用索引，是否修剪分区以及可能影响查询性能其他方面。查询计划提示了每个操作的成本，并且可以标记是否未使用索引。</p>
+<p>要获取查询的执行计划，您只需要在查询前加上 <code>EXPLAIN</code> 即可，如下所示：</p>
+<div class="highlight"><pre><span></span><code><span class="k">EXPLAIN</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">orders</span>
+<span class="k">WHERE</span>
+<span class="n">order_timestamp</span><span class="w"> </span><span class="k">between</span><span class="w"> </span><span class="s1">&#39;2024-02-01 00:00:00&#39;</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="s1">&#39;2024-02-03 00:00:00&#39;</span><span class="w"> </span>
+<span class="k">OR</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;NEW&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>在此示例中，数据库返回的执行计划展示了 <code>idx_order_date</code> 和 <code>idx_order_status</code> 两个索引以及两个结果之间的 <code>BitmapOr</code> 的使用情况。</p>
+<div class="highlight"><pre><span></span><code>                                                                                            QUERY PLAN
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on orders  (cost=687.35..7149.18 rows=60333 width=4)
+   Recheck Cond: (((order_timestamp &gt;= &#39;2024-02-01 00:00:00&#39;::timestamp without time zone) AND (order_timestamp &lt;= &#39;2024-02-03 00:00:00&#39;::timestamp without time zone)) OR (status = &#39;NEW&#39;::text))
+   -&gt;  BitmapOr  (cost=687.35..687.35 rows=60333 width=0)
+         -&gt;  Bitmap Index Scan on idx_order_date  (cost=0.00..655.75 rows=60333 width=0)
+               Index Cond: ((order_timestamp &gt;= &#39;2024-02-01 00:00:00&#39;::timestamp without time zone) AND (order_timestamp &lt;= &#39;2024-02-03 00:00:00&#39;::timestamp without time zone))
+         -&gt;  Bitmap Index Scan on idx_order_status  (cost=0.00..1.43 rows=1 width=0)
+               Index Cond: (status = &#39;NEW&#39;::text)
+(7 rows)
+</code></pre></div>
+<h4 id="_1">警告</h4>
+<p>数据库优化器将根据基数估计生成执行计划。这些估计越接近表中的数据，数据库就越能够定义最佳计划。计划也会随着时间而改变，因此，当查询性能突然下降时，计划的改变可能是原因之一。该计划还将取决于表和数据库中创建的索引等其他辅助结构，在下一节中，我们将分析其他结构如何影响性能。</p>
+<h4 id="_2">黄金法则</h4>
+<p>花时间了解查询执行计划以找到潜在的性能瓶颈。使用 <code>ANALYZE</code> 命令自动或手动更新统计数据，为数据库提供有关各个表负载的最新信息。</p>
+<h3 id="select-sql_2">通过使用索引优化 <code>SELECT</code> SQL 查询</h3>
+<p>上面定义的几个选项建议使用索引，但您应该如何使用它们呢？在执行过滤、连接和排序时，索引是关键的性能提升器。因此，了解查询模式并创建涵盖正确子句的适当索引至关重要。<a href="https://www.postgresql.org/docs/current/indexes.html">PostgreSQL</a> 和 <a href="https://dev.mysql.com/doc/refman/8.0/en/mysql-indexes.html">MySQL</a> 都提供多种索引类型，每种索引类型都有独特的特性并且非常适合某些用例。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/index.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/index.avif" /></a></p>
+<h4 id="_3">警告</h4>
+<p>正如在 <code>DELETE</code> 和 <code>INSERT</code> 部分中提到的，在表上添加的任何索引都会减慢写入操作的速度。此外，索引占用磁盘空间并需要维护。因此，请仔细考虑您想要优化哪些工作负载以及哪组索引可以为您带来最佳结果。</p>
+<h4 id="_4">黄金法则</h4>
+<p>与数据库表不同，索引可以被删除并重新创建而不会丢失数据。因此，定期评估指标集及其状态非常重要。您可以依赖数据库系统表检查索引使用情况，如 <a href="https://www.postgresql.org/docs/current/monitoring-stats.html">PostgreSQL <code>pg_stat_user_indexes</code></a> 或 <a href="https://dev.mysql.com/doc/mysql-perfschema-excerpt/8.3/en/performance-schema-table-io-waits-summary-by-index-usage-table.html">MySQL <code>table_io_waits_summary_by_index_usage</code></a>，提供有关影响索引查询的最新统计信息。一旦确定了已使用和未使用的索引，请评估在工作负载发生变化的情况下重组它们的必要性。</p>
+<h4 id="_5">专业提示</h4>
+<p>索引可用于单列、多列甚至函数。如果您希望使用 <code>upper(name)</code> 函数等来过滤数据，则可以索引该函数的输出以获得更好的性能（函数索引）。</p>
+<p><a href="https://aiven.io/solutions/aiven-ai-database-optimizer">Aiven AI 数据库优化器</a>可以根据您的数据库工作负载为您提供索引建议。</p>
+<h3 id="select-sql_3">通过改进连接来优化 <code>SELECT</code> SQL 查询</h3>
+<p>在关系数据库中，经常使用连接来选择来自不同表的数据。了解可用的连接类型及其含义对于实现最佳性能至关重要。以下建议将帮助您确定正确的连接类型。</p>
+<h4 id="select-sql_4">通过选择内连接来优化 <code>SELECT</code> SQL 查询</h4>
+<p>MySQL 和 PostgreSQL 都提供了多种连接类型，允许您精确定义从连接两侧检索的行集。由于各种原因，它们都是有用的，但并非所有它们都具有相同的性能。<code>INNER JOIN</code> 仅检索数据集两侧包含的行通常具有最佳性能。另一方面，与 <code>INNER JOIN</code> 相比，<code>LEFT</code>、<code>RIGHT</code> 和 <code>OUTER</code> 连接需要执行一些额外的工作，因此仅在真正必要时才应使用。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/join.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/join.avif" /></a></p>
+<h5 id="_6">警告</h5>
+<p>仔细检查您的查询，有时如下的查询似乎是合法的：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">ORDERS</span><span class="w"> </span><span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">USERS</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">ORDERS</span><span class="p">.</span><span class="n">NAME</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">USERS</span><span class="p">.</span><span class="n">NAME</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">USERS</span><span class="p">.</span><span class="n">NAME</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span>
+</code></pre></div>
+<p>上面使用 <code>LEFT JOIN</code> 从 <code>ORDERS</code> 中检索所有行，然后筛选出具有 <code>USERS.NAME IS NOT NULL</code> 的行。因此相当于 <code>INNER JOIN</code>。</p>
+<h5 id="_7">黄金法则</h5>
+<p>评估 <code>JOIN</code> 语句的确切要求，并分析现有的 <code>WHERE</code> 条件。如果不是绝对必要，最好使用 <code>INNER JOIN</code>。</p>
+<h5 id="_8">专业提示</h5>
+<p>还请检查是否可以完全避免连接。例如，如果我们连接数据只是为了验证另一个表中是否存在一行，使用 <code>EXISTS</code> 的子查询可能比连接快得多。查看<a href="https://www.eversql.com/how-to-speed-up-countdistinct/#Speed_up_COUNTDISTINCT_by_avoiding_explodeimplode_patterns_with_DISTINCTGROUP_BY">如何加速 <code>COUNT(DISTINCT)</code> 博客中的详细示例</a>。</p>
+<h4 id="select-sql_5">通过对连接使用相同的列类型来优化 <code>SELECT</code> SQL 查询</h4>
+<p>当连接两个表时，确保连接条件中的列属于同一类型。将一个表中的整数 <code>Id</code> 列与另一个表中定义为 <code>VARCHAR</code> 的另一个 <code>customerId</code> 列连接起来，将强制数据库在比较结果之前将每个 <code>Id</code> 转换为字符串，从而降低性能。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/type-convert.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/type-convert.avif" /></a></p>
+<h5 id="_9">警告</h5>
+<p>您无法在查询时更改源字段类型，但您可以暴露数据类型不一致问题并在数据库表中修复它。在分析 <code>CustomerId</code> 字段是否可以从 <code>VARCHAR</code> 迁移到 <code>INT</code> 时，请检查列中的所有值是否确实都是整数。如果某些值不是整数，则可能存在数据质量问题。</p>
+<h5 id="_10">专业提示</h5>
+<p>如有疑问，请选择更紧凑的连接键表示形式。如果您存储的内容可以明确地定义为数字（例如产品代码 <code>1234-678-234</code>），则最好使用数字表示，因为它可以：</p>
+<ul>
+<li>使用更少的磁盘空间</li>
+<li>获取速度更快</li>
+<li>由于整数比较比字符串版本更快，因此连接速度更快</li>
+</ul>
+<p>然而，要小心那些看起来像数字但行为却不像数字的东西--例如，电话号码 <code>015555555</code> 其中前导零很重要。</p>
+<h4 id="select-sql_6">通过避免使用连接函数来优化 <code>SELECT</code> SQL 查询</h4>
+<p>与上一节类似，避免在连接中使用不必要的函数。函数可以阻止数据库使用性能优化（例如利用索引）。考虑以下查询：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span>
+<span class="k">JOIN</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">UPPER</span><span class="p">(</span><span class="n">users</span><span class="p">.</span><span class="n">user_name</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">orders</span><span class="p">.</span><span class="n">user_name</span>
+</code></pre></div>
+<p>以上代码使用函数将 <code>user_name</code> 字段转换为大写。然而，这可能表明订单表中的数据质量较差（缺少外键），需要解决。</p>
+<h5 id="_11">警告</h5>
+<p>类似上述的查询可以展示查询时解决的数据质量问题，这只是一个短期解决方案。在设计数据后端系统时，应优先考虑正确处理数据类型和质量约束。</p>
+<h5 id="_12">黄金法则</h5>
+<p>在关系数据库中，表之间的连接应该可以使用键和外键来完成，而无需任何附加功能。如果您发现自己需要使用某个函数，请修复表中的数据质量问题。在某些边缘情况下，使用函数与索引可以帮助加快复杂或冗长数据类型之间的比较。例如，使用连接函数 <code>UPPER(SUBSTR(users.user_name, 1, 50))</code> 和同一函数上的索引，仅比较前 50 个字符，可以加速检查两个长字符串之间的相等性。</p>
+<h4 id="select-sql_7">通过避免连接来优化 <code>SELECT</code> SQL 查询</h4>
+<p>查询可以由不同的人随着时间的推移而构建，并且具有 CTE（公共表表达式）形式的许多连续步骤。因此，可能很难了解数据输入和输出方面的实际需求。大多数情况下，在编写查询时，您可以在稍后添加一个额外的字段“以防万一”。但是，如果该字段来自需要连接的新表，这可能会对性能产生巨大影响。</p>
+<p>始终评估查询的严格数据需求，并且仅包含包含此信息的列和表。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/avoid-joins.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/avoid-joins.avif" /></a></p>
+<h4 id="_13">警告</h4>
+<p>仔细检查是否需要连接来过滤两个表中存在的行。在上面的例子中，如果订单表中存在未存储在用户表的 <code>id</code> 列中的 <code>user_id</code>，我们最终可能会得到不正确的结果。</p>
+<h4 id="_14">黄金法则</h4>
+<p>删除不必要的连接。生成更精简的查询来检索整体数据集，然后仅在必要时查找更多信息，这样性能会更高。</p>
+<h4 id="_15">专业提示</h4>
+<p>上面解释的例子只是 <code>JOIN</code> 过度使用的一个例子。另一个例子是，我们连接数据只是为了验证另一个表中某一行的存在。在这种情况下，使用 <code>EXISTS</code> 的子查询可能比连接快得多。查看<a href="https://www.eversql.com/how-to-speed-up-countdistinct/#Speed_up_COUNTDISTINCT_by_avoiding_explodeimplode_patterns_with_DISTINCTGROUP_BY">如何加速 COUNT(DISTINCT)</a> 博客中的详细示例。</p>
+<h3 id="select-sql_8">通过改进过滤来优化 <code>SELECT</code> SQL 查询</h3>
+<p>分析完 <code>JOIN</code> 连接之后，现在是时候评估和改进查询的 <code>WHERE</code> 部分了。与上面的部分一样，对过滤语句的细微改变可能会对查询性能产生巨大影响。</p>
+<h4 id="select-sql_9">通过避免在过滤中使用函数来优化 <code>SELECT</code> SQL 查询</h4>
+<p>在过滤阶段对列使用函数会降低性能。数据库需要在过滤之前将函数应用于数据集。让我们看一个根据时间戳字段进行过滤的简单示例：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">orders</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="k">CAST</span><span class="p">(</span><span class="n">order_timestamp</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">DATE</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="s1">&#39;2024-02-01&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>上述查询在 100,000,000 行数据集上需要执行 01 分 53 秒，因为它需要在应用过滤器之前将 <code>order_timestamp</code> 列的数据类型从时间戳更改为日期。但这不是必需的！正如 <a href="https://www.eversql.com/?utm_medium=organic&amp;utm_source=ext_blog&amp;utm_content=aivensqloptimization">Aiven 的 EverSQL</a> 所建议的那样，如果您为其提供上述查询和表元数据，则可以将其重写为：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">orders</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">order_timestamp</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="s1">&#39;2024-02-01 00:00:00&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>重写的查询使用本机时间戳字段，无需进行强制转换。这种微小变化的结果是，查询现在只需 20 秒即可运行，比原来快近 6 倍。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/filter-cast.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/filter-cast.avif" /></a></p>
+<h5 id="_16">警告</h5>
+<p>并非所有函数都可以避免，因为有些函数可能需要检索列的部分内容（如上面的 <code>substring</code> 示例）或重写它。尽管如此，每次您要在过滤器中添加函数时，请考虑使用本机数据类型运算符的其他方法。</p>
+<h5 id="_17">黄金法则</h5>
+<p>将过滤器应用到列时，请尝试改写过滤器格式而不是列格式。上面是一个完美的例子：将过滤器格式从日期 <code>2024-02-01</code> 转换为时间戳 <code>2024-02-01 00:00:00</code> 使我们能够使用本机时间戳数据格式和运算符。</p>
+<h5 id="_18">专业提示</h5>
+<p>如果您必须使用函数，请考虑以下两点建议：</p>
+<ul>
+<li>在表达式上创建索引，<a href="https://www.postgresql.org/docs/current/indexes-expressional.html">PostgreSQL</a> 和 <a href="https://dev.mysql.com/doc/refman/8.0/en/create-index.html#create-index-functional-key-parts">MySQL</a> 都支持</li>
+<li>使用数据库的触发器来生成额外的列，并且列已经完成了数据转换</li>
+</ul>
+<h4 id="select-sql_10">通过改进子查询来优化 <code>SELECT</code> SQL 查询</h4>
+<p>子查询通常用于过滤器中，以检索要作为过滤器应用的值集。一个常见的例子是检索最近活动的用户列表。</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">users</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">user_id</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">sessions</span><span class="w"> </span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">session_date</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2024-02-01&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>上述查询从 <code>SESSIONS</code> 表中检索不同的用户列表，然后过滤 <code>USERS</code> 表上的数据。</p>
+<p>但是，有几种更高效的方法可以实现相同的结果。例如使用 <code>EXISTS</code>：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">users</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="p">(</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">user_id</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">sessions</span><span class="w"> </span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">user_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">session_date</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2024-02-01&#39;</span>
+<span class="p">);</span>
+</code></pre></div>
+<p><code>EXISTS</code> 速度更快，因为它不需要从 <code>SESSION</code> 表中检索不同用户的列表，而只是验证表中是否存在特定用户的至少一行。</p>
+<p>上述用例仅通过更改子查询部分就从 02 分 08 秒的性能缩短到了 18 秒。</p>
+<h5 id="_19">警告</h5>
+<p>子查询中的细微变化可能会在极端情况下产生不同的结果。有关执行和结果集细微差别的示例，请查看在 <a href="https://www.eversql.com/5-ways-to-implement-not-exists-in-postgresql">PostgreSQL 中实现 <code>NOT EXISTS</code> 的 5 种方法</a>。</p>
+<h5 id="_20">黄金法则</h5>
+<p>当需要使用子查询时，花点时间学习和了解有哪些选项以及它们允许您实现什么。很多时候，选项不止一个，而且有些功能可以提供更好的响应时间。</p>
+<h4 id="select-sql_11">通过对结果集进行分页优化 <code>SELECT</code> SQL 查询</h4>
+<p>当需要显示一长串行时，对从数据库检索的结果集进行分页很有用。<a href="https://www.postgresql.org/docs/current/queries-limit.html">PostgreSQL</a> 和 <a href="https://dev.mysql.com/doc/refman/8.0/en/select.html">MySQL</a> 都提供了 <code>LIMIT</code> 限制输出结果集的功能，以仅检索一定数量的行，并且可以通过 <code>OFFSET</code> 结合排序获取特定偏移范围的结果集。使用 <code>LIMIT</code> 和 <code>OFFSET</code> 是将发送给客户端的数据最小化为仅需要显示的数据的好方法。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/limit-offset.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/limit-offset.avif" /></a></p>
+<h5 id="_21">警告</h5>
+<p>使用 <code>LIMIT</code> 和 <code>OFFSET</code> 的缺点是您需要对每个“页面”进行查询并将其发送至数据库并执行。如果总行数与页面大小相差不大，这可能会带来不便。举例来说，如果您以每页 10 行显示结果，但平均有 15 行需要显示，那么一次性检索整个数据集可能会更好。</p>
+<h5 id="_22">黄金法则</h5>
+<p>如果结果集的大小比页面大小大一个数量级，则使用分页可以有效地确保更好的性能，因为只会从数据库中检索可见的数据集。</p>
+<h5 id="_23">专业提示</h5>
+<p><code>LIMIT</code> 和 <code>OFFSET</code> 子句是大多数数据库中的默认分页方法。然而，通过在客户端存储当前页面的起始和结束偏移量并将下一页的过滤推送到 SQL 语句的 <code>WHERE</code> 子句中，可以实现更有效的分页实现。在 Markus Winand 的 <a href="https://use-the-index-luke.com/blog/2013-07/pagination-done-the-postgresql-way">PostgreSQL 方式分页演示</a>中以及 <a href="https://www.eversql.com/faster-pagination-in-mysql-why-order-by-with-limit-and-offset-is-slow/">MySQL 更快分页博客</a>中提供了此实现的几个示例。</p>
+<h4 id="having-where-select-sql">通过将过滤器从 <code>HAVING</code> 移至 <code>WHERE</code> 子句来优化 <code>SELECT</code> SQL 查询</h4>
+<p>运行查询时，<code>WHERE</code> 和 <code>HAVING</code> 子句中定义的过滤器会在不同时间应用：</p>
+<ul>
+<li><code>WHERE</code> 过滤器将应用于原始数据集，在 <code>SELECT</code> 语句中定义的任何数据转换之前</li>
+<li><code>HAVING</code> 过滤器在聚合后应用，因此是在检索、转换和汇总所有行之后应用的</li>
+</ul>
+<p>因此，将过滤器移动到 <code>WHERE</code> 中应该是一个优先事项，因为它允许您处理较小的数据集。举个例子，如果我们尝试获取具有跟踪 <code>user_id</code> 的会话的日期列表（<code>user_id</code> 字段不为空，要了解有关差异的更多信息，请查看 <a href="https://www.eversql.com/how-to-speed-up-countdistinct/">COUNT DISTINCT 博客文章</a>）：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">session_date</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span><span class="w"> </span><span class="n">nr_sessions</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">sessions</span>
+<span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">session_date</span>
+<span class="k">HAVING</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</code></pre></div>
+<p>我们可以通过将过滤器推送到 <code>WHERE</code> 子句来重写上述查询：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">session_date</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span><span class="w"> </span><span class="n">nr_sessions</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">sessions</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">user_id</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="k">null</span>
+<span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">session_date</span><span class="p">;</span>
+</code></pre></div>
+<p>只需更改过滤语句，100,000,000 行数据集的查询性能就从 21 秒缩短到 18 秒。</p>
+<h5 id="_24">警告</h5>
+<p>仅当我们能够确定适用于行级别而不是适用于聚合级别的类似条件时，才可以将过滤器从 <code>HAVING</code> 移至 <code>WHERE</code> 子句。</p>
+<h5 id="_25">黄金法则</h5>
+<p>始终尝试在 <code>WHERE</code> 子句中进行过滤，因为过滤在数据通过 <code>SELECT</code> 语句转换/聚合之前应用。</p>
+<h3 id="select-sql_12">通过定义要检索的列来优化 <code>SELECT</code> SQL 查询</h3>
+<p>查询表时，确定需要检索哪些列是关键。<code>SELECT * FROM TBL</code> 通常用作检索所有列的快捷方式，然后定义稍后需要显示哪些列，但是这样做时，需要从数据库中检索并传输更多数据，从而影响性能。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/select-all-columns.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/select-all-columns.avif" /></a></p>
+<h4 id="_26">警告</h4>
+<p>使用 <code>SELECT * FROM TBL</code> 不仅经常会检索比必要更多的数据，而且还容易出现错误。试想一下，添加一个新列，它会立即显示在应用程序中，或者从数据库中删除一个列，从而破坏前端解析。通过谨慎定义要检索的列的列表，您可以准确地陈述查询的数据需求。</p>
+<h4 id="_27">黄金法则</h4>
+<p>每个 <code>SELECT</code> 语句应该仅定义完成作业所需的列的列表。</p>
+<h3 id="select-sql_13">使用聚合函数优化 <code>SELECT</code> SQL 查询</h3>
+<p>有时目标是查询表以获取行的总数或某组列的总值。在这种情况下，从数据库中提取所有数据并在其他地方执行计算是一个坏主意。我们可以利用本机数据库聚合功能在数据所在的位置进行计算，移动更少的数据并实现更好的整体性能。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/aggregate-function.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/aggregate-function.avif" /></a></p>
+<p>如果您尝试计算列内的不同值，我们有一篇专门介绍<a href="https://www.eversql.com/how-to-speed-up-countdistinct/">如何提高 <code>COUNT DISTINCT</code> 查询速度的文章</a>。</p>
+<h4 id="_28">警告</h4>
+<p>虽然数据库聚合函数满足了广泛的需求（参见 <a href="https://www.postgresql.org/docs/current/tutorial-agg.html">PostgreSQL</a> 和 <a href="https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html">MySQL</a>），但它们可能不包含您需要执行的精确计算。在这种情况下，您需要了解在该级别提取和聚合所需的最小粒度是什么。</p>
+<h4 id="_29">黄金法则</h4>
+<p>当需要执行聚合时，请检查可用的数据库函数。尽管数据库扩展规则之一是聚合操作推向偏向客户端，但通常值得使用数据库服务器提供的聚合函数来减少传输到客户端的数据量。此外，数据库可以实现先进的技术来优化聚合计算。</p>
+<h3 id="select-sql_14">使用窗口函数优化 <code>SELECT</code> SQL 查询</h3>
+<p><a href="https://www.postgresql.org/docs/current/tutorial-window.html">PostgreSQL</a> 和 <a href="https://dev.mysql.com/doc/refman/8.0/en/window-functions-usage.html">MySQL</a> 中提供的窗口函数提供了一种计算聚合值并将其与当前行值进行比较的方法。例如，当需要计算某次销售对整个国家销售额的总体贡献时，它们真的很有用。使用窗口函数可以简化查询 SQL，并利用数据库优化器来决定检索数据所需的最佳操作集。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/window-function.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/window-function.avif" /></a></p>
+<h4 id="_30">警告</h4>
+<p>窗口函数不会改变数据集的基数。例如，如果您在 <code>ORDER</code> 级别检索数据，窗口函数仍将为每个订单产生一行。评估输出中所需数据的基数，然后决定是否使用窗口或聚合函数。</p>
+<h4 id="_31">黄金法则</h4>
+<p>与上述类似，采用窗口函数可以成为在将数据发送给客户端之前进行预先计算的有效方法。但是生成它们的代码相当冗长。请在完整查询 SQL 优化和代码可读性和可维护性之间确定优先级。</p>
+<h4 id="_32">专业提示</h4>
+<p>窗口函数不仅可用于在某个级别聚合内容，而且还公开了 <code>ORDER BY</code> 语句，允许您执行正在运行的计算。</p>
+<h3 id="select-sql_15">使用分区优化 <code>SELECT</code> SQL 查询</h3>
+<p>提高 <code>SELECT</code> 性能的另一种技术是将数据分成多个子表（称为分区）。<a href="https://www.postgresql.org/docs/current/ddl-partitioning.html">PostgreSQL</a> 和 <a href="https://dev.mysql.com/doc/refman/8.0/en/partitioning.html">MySQL</a> 中提供分区功能，可根据谓词将数据拆分到多个表中。如果您经常需要使用特定过滤器（例如日期）检索数据，则可能需要将其组织在不同的分区中，每天一个，这样大多数查询只会扫描一个分区而不是整个数据集。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/partition-table.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/partition-table.avif" /></a></p>
+<h4 id="_33">警告</h4>
+<p>尽管分区对于用户来说是“不可见的”（某个用户可以查询原始表并从所有分区中选择数据），但您需要考虑它的管理。具体来说，对于 LIST 分区，当插入新键时，需要预先创建适当的分区，否则插入将失败。</p>
+<h4 id="_34">黄金法则</h4>
+<p>在使用相同键过滤数据集的一致查询模式的情况下，分区非常有用。在没有明确过滤标准的情况下对表进行分区只会增加数据库的负载，使每个查询变得更慢。</p>
+<h3 id="select-sql_16">使用物化视图优化 <code>SELECT</code> SQL 查询</h3>
+<p><a href="https://www.postgresql.org/docs/current/rules-materializedviews.html">PostgreSQL</a> 中提供的物化视图是一种通过预先计算结果来加速 <code>SELECT</code> 语句的好方法。物化视图与标准视图不同，因为：</p>
+<ul>
+<li>它们将查询结果存储在表中</li>
+<li>它们需要更新以提供最新的结果</li>
+</ul>
+<p>不过，如果您读取了写入次数很少的密集环境，那么为可供多次读取使用的物化视图刷新付出代价可能是提高查询性能的最佳方法。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/materialized-view.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/materialized-view.avif" /></a></p>
+<h4 id="_35">警告</h4>
+<p>如上所述，物化视图是静态对象，它们不会在每次插入、更新或删除底层表集时自动更新。因此，务必记住，查询物化视图可能会提供与查询原始表不同的结果。</p>
+<h4 id="_36">黄金法则</h4>
+<p>如果您的主要目标是以不检索最新结果为代价获得更好的性能，那么物化视图是一个完美的解决方案。请记住，物化视图会占用磁盘空间，并且其创建或刷新会消耗时间和性能。</p>
+<h4 id="_37">专业提示</h4>
+<p>当复杂查询扫描过去无法更新的数据时，物化视图非常有用。在这种情况下，为旧数据创建物化视图并实时查询源表以获取新数据可以很好地提供最佳性能而无需报告陈旧数据。</p>
+<h2 id="insert-sql">如何优化 <code>INSERT</code> SQL 查询</h2>
+<h3 id="insert-sql_1">使用专用功能优化 <code>INSERT</code> SQL 查询</h3>
+<p>在数据库中加载数据的标准做法是使用 <code>INSERT</code> 语句。然而，一些数据库有专门的工具可以从各种格式（如二进制或 CSV）的源文件直接插入大块数据。</p>
+<p><a href="">PostgreSQL <code>COPY</code></a> 或 <a href="">MySQL <code>LOAD DATA</code></a> 等工具允许您直接指向 CSV 或二进制文件，并针对加载大量数据进行了优化，与一系列 <code>INSERT</code> 语句相比，通常可以缩短加载时间。</p>
+<h4 id="_38">警告</h4>
+<p>虽然 <a href="">PostgreSQL <code>COPY</code></a> 或 <a href="">MySQL <code>LOAD DATA</code></a> 都比在单独的 INSERT 语句中加载每一行更快，但它们都会在一个大事务中加载数据，从而给数据库带来压力。此外，长事务也将成为复制过程中的瓶颈，导致副本重放滞后。再者，如果在发生大事务时进行备份，则恢复将被迫回滚备份中已存储的所有更改，从而使恢复过程变得更慢。</p>
+<h4 id="_39">黄金法则</h4>
+<p>尝试在提取吞吐量和事务大小之间找到最佳点。将海量数据文件分割成较小的块，然后使用 <a href="">PostgreSQL <code>COPY</code></a> 或 <a href="">MySQL <code>LOAD DATA</code></a> 加载它可能是一种完美的中间方案，既能提供所需的速度，又不会给数据库增加太大压力。</p>
+<h4 id="_40">专业提示</h4>
+<p>如果源文件中的数据与目标表的格式不匹配，则使用外部脚本正确地重塑源数据可能比将数据加载到临时表中然后在数据库中重塑数据更快。</p>
+<h3 id="insert-sql_2">通过删除不必要的索引来优化 <code>INSERT</code> SQL 查询</h3>
+<p>索引被广泛采用来加速数据库读取模式，但是由于数据库需要同时更新源表和索引，因此它们会对每个写入操作（<code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code>）造成损失。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/insert-index.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/insert-index.avif" /></a></p>
+<p>因此，为了优化写入工作负载，您可能需要检查表中的所有索引是否都是必要的，并在读取时经常被使用。要检查索引使用情况，您可以依赖数据库系统表，如 <a href="https://www.postgresql.org/docs/current/monitoring-stats.html">PostgreSQL <code>pg_stat_user_indexes</code></a> 或 <a href="https://dev.mysql.com/doc/mysql-perfschema-excerpt/8.3/en/performance-schema-table-io-waits-summary-by-index-usage-table.html">MySQL <code>table_io_waits_summary_by_index_usage</code></a>，提供有关影响索引的查询的最新统计信息。PostgreSQL 16 <code>pg_stat_user_indexes</code> 输出的示例如下：</p>
+<div class="highlight"><pre><span></span><code> relid | indexrelid | schemaname | relname |   indexrelname   | idx_scan |         last_idx_scan         | idx_tup_read | idx_tup_fetch
+-------+------------+------------+---------+------------------+----------+-------------------------------+--------------+---------------
+ 16460 |      16466 | public     | orders  | idx_order_date   |        1 | 2024-01-01 11:15:10.410511+00 |           10 |            10
+ 16460 |      16465 | public     | orders  | idx_order_status |        4 | 2024-02-08 11:16:00.471185+00 |            0 |             0
+(2 rows)
+</code></pre></div>
+<p>我们可以看到 <code>idx_order_date</code> 和 <code>idx_order_status</code> 索引分别被扫描了一次和四次，其中 <code>idx_order_date</code> 最后一次被扫描是在 <code>2024-01-01 11:15:10.410511+00</code>。由于该索引自一月份以来就没有被使用过，因此它可能是一个值得删除的索引。</p>
+<p><a href="https://www.eversql.com/?utm_medium=organic&amp;utm_source=ext_blog&amp;utm_content=aivensqloptimization">Aiven 的 EverSQL</a> 提供了冗余索引检测功能，可以自动发现未使用的索引。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/eversql-index.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/eversql-index.avif" /></a></p>
+<p>一旦您确定未使用的索引，删除它们将会在写入性能和减少磁盘空间使用方面带来好处。</p>
+<h4 id="_41">警告</h4>
+<p>索引是加快读取操作的关键，删除它们可能会对所有 <code>SELECT</code> 查询产生影响。了解数据库中的读/写模式对于优化整体体验而不是仅仅一个语句至关重要。</p>
+<h4 id="_42">黄金法则</h4>
+<p>分析整体数据库工作负载并定义性能优化优先级。在此基础上，评估可用的整体索引集并确定哪些索引需要保留或可以删除。</p>
+<h4 id="_43">专业提示</h4>
+<p>如果您的数据加载语句发生在读取负责较低的时段，例如在夜间加载数据仓库时，您可以通过以下方式获得更好的提取性能：</p>
+<ul>
+<li>禁用索引</li>
+<li>加载数据</li>
+<li>重新启用索引</li>
+</ul>
+<h3 id="insert-sql-select">优化 <code>INSERT</code> SQL 查询，就像它是 <code>SELECT</code> 语句一样</h3>
+<p>在许多情况下，<code>INSERT</code> 语句包含业务逻辑部分，与 <code>SELECT</code> 查询完全一样，这意味着它们可以包含 <code>WHERE</code> 子句、子查询等。</p>
+<p>提取查询的内部部分并对其进行优化（通过索引、分区、查询重写等），就好像它是一个 <code>SELECT</code> 查询一样，可以提高性能。</p>
+<h4 id="_44">警告</h4>
+<p><code>INSERT</code> 是数据库的写入工作负载，因此您需要谨慎地找到可以加速 <code>INSERT</code> 语句中的业务逻辑的确切边界，同时又不影响读取工作负载的性能。</p>
+<h4 id="_45">黄金法则</h4>
+<p>如果您的 <code>INSERT</code> 语句正在从数据库中的另一个表中选择数据，则可以遵循 <code>SELECT</code> 部分中详细说明的规则。如果在 <code>INSERT</code> 和 <code>SELECT</code> 语句（<code>WHERE</code> 条件）中都使用了明确的数据边界，那么对表进行分区可以加快这两个过程。</p>
+<h2 id="delete-sql">如何优化 <code>DELETE</code> SQL 查询</h2>
+<h3 id="delete-sql_1">通过删除不必要的索引来优化 <code>DELETE</code> SQL 查询</h3>
+<p>同样，插入和删除（和更新）性能都可以从删除不必要的索引中获益。</p>
+<h4 id="_46">警告</h4>
+<p>根据工作负载，删除可能不像插入/更新那样频繁。过度优化删除可能会降低更常见的读/写模式的性能或复杂性。</p>
+<h4 id="_47">黄金法则</h4>
+<p>分析整体数据库工作负载并定义性能优化优先级。在此基础上，评估可用的整体索引集并确定哪些索引需要保留或可以删除。</p>
+<h3 id="truncate-delete-sql">使用 <code>TRUNCATE</code> 优化 <code>DELETE</code> SQL 查询</h3>
+<p>如果您的目的是从表中删除所有行，<code>TRUNCATE</code> 就是您的好帮手。<code>TRUNCATE</code> 在 PostgreSQL 和 MySQL（以及其他数据库）中都可用，它并不执行逐个元组的删除，而只是告诉数据库将所有新表的数据存储到一个新的空位置。因此，与 <code>DELETE FROM TABLE</code> 相比，它要快得多。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/delete-vs-truncate.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/delete-vs-truncate.avif" /></a></p>
+<h4 id="_48">警告</h4>
+<p>仅当您需要从表中删除所有行时，<code>TRUNCATE</code> 才有效。如果您只需要删除一组特定的行，那么这不是一个选项，您可能应该考虑分区。<code>TRUNCATE</code> 和 <code>DELETE</code> 具有不同的权限、需求和执行，理解它们（在 <a href="https://dev.mysql.com/doc/refman/8.0/en/truncate-table.html">MySQL</a> 和 <a href="https://www.postgresql.org/docs/current/sql-truncate.html">PostgreSQL</a> 中）是确保使用正确操作的关键。</p>
+<h4 id="_49">黄金法则</h4>
+<p>在设计数据库表时，还要分析数据保留方面的需求。如果一个表只需要包含“最新”的数据，则在设计时要考虑频繁插入和删除。</p>
+<h4 id="_50">专业提示</h4>
+<p>使用分区或创建时间绑定表（例如 <code>SALES_01_2024</code>）可以加快删除速度，因为整个表可以被截断。</p>
+<h3 id="delete-sql_2">使用表分区优化 <code>DELETE</code> SQL 查询</h3>
+<p>延续上一节，如果您的目标是根据已知规则定期删除数据（例如根据日期字段），则可以使用分区。PostgreSQL 和 MySQL 中提供分区功能，可根据谓词将数据拆分到多个表中。如果您需要删除分区中包含的整个数据子集，只需截断分区本身即可。</p>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/delete-partition-table.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/delete-partition-table.avif" /></a></p>
+<p>分区谓词可以是：</p>
+<ul>
+<li><strong>RANGE</strong>: 定义与表中每个分区相关的一组范围</li>
+<li><strong>LIST</strong>: 定义与表中每个分区关联的固定值列表</li>
+<li><strong>HASH</strong>: 根据用户定义的函数定义分区</li>
+<li><strong>KEY</strong>: 在 MySQL 中可用，使用 MySQL 散列函数提供 HASH 分区</li>
+</ul>
+<h4 id="_51">警告</h4>
+<p>尽管分区对于用户来说是“不可见的”（某个用户可以查询原始表并从所有分区中选择数据），但仍需要考虑分区表的管理。具体来说，对于 LIST 分区，当插入新键时，需要预先创建适当的分区。</p>
+<h4 id="_52">黄金法则</h4>
+<p>当数据集在时间或其他列（例如国家）方面存在明确边界时，分区非常有用。在没有明确过滤标准的情况下对表进行分区只会增加数据库的负载，使每个查询变得更慢</p>
+<h3 id="delete-sql_3">通过将语句拆分成块来优化 <code>DELETE</code> SQL 查询</h3>
+<p>执行大规模 <code>DELETE</code> 操作时，通过应用额外的 <code>WHERE</code> 条件将要删除的数据量分成更小的块。通过这种技术，您可以获得一个更容易跟踪的流程、在发生故障时更快地回滚，并且通常总体上具有更好的性能。</p>
+<h4 id="_53">警告</h4>
+<p>将 <code>DELETE</code> 操作分成多个较小的语句会使您面临缺乏一致性的风险，并且由于数据子集不重叠而丢失一些行。因此，您需要确保满足一致性要求，并且生成的语句集包含原始查询所针对的整套行。</p>
+<h4 id="_54">黄金法则</h4>
+<p>将 <code>DELETE</code> 操作拆分成多个块是提高性能并减少对数据库影响的好方法。如果您有一组特定的数据，并且该数据具有明确的写入和读取操作边界（例如 <code>COUNTRY</code> 或 <code>DATE</code>），您可以将其用作分割键，并使用此方法。</p>
+<h3 id="delete-delete-sql">通过减少执行 <code>DELETE</code> 的频率来优化 <code>DELETE</code> SQL 查询</h3>
+<p>在某些用例中，您可能希望每天删除数据，例如需要删除超过 30 天的旧数据。但是，此操作需要每天扫描整个表。对于此类用例，您可以利用以下组合逻辑：</p>
+<ul>
+<li>使用更智能的 <code>SELECTS</code> 不显示旧数据集（不检索超过 30 天的数据）</li>
+<li>仅当空间回收有用时才删除数据（磁盘空间不足时）</li>
+</ul>
+<p>此外，在 PostgreSQL 和 MySQL 中，删除表中的一小部分数据集不会节省大量磁盘空间，因为它只会在托管<a href="https://www.google.com/url?q=https://jfg-mysql.blogspot.com/2017/07/innodb-compaction.html&amp;sa=D&amp;source=docs&amp;ust=1707753160642232&amp;usg=AOvVaw2nUTuUDmp0082dAi2J4oy6">表数据的页面中产生可用空间</a>。</p>
+<h4 id="_55">警告</h4>
+<p>您可能被法律强制按时删除旧数据。在这种情况下，请明智地评估您的数据保留需求并相应地规划数据删除。智能分区设计可以帮助通过截断提供快速删除语句。</p>
+<h4 id="_56">黄金法则</h4>
+<p>明智地设计数据保留策略和相关删除语句。如果您不打算删除大部分数据集，就不要计划节省大量空间。</p>
+<h3 id="delete-delete-sql_1">通过不执行 <code>DELETE</code> 来优化 <code>DELETE</code> SQL 查询</h3>
+<p>如果要删除大型表中的大部分数据，则以下方法会更快：</p>
+<ul>
+<li>创建新表</li>
+<li>复制仍然需要的一小部分</li>
+<li>删除旧表</li>
+<li>重命名表</li>
+</ul>
+<p><a class="glightbox" href="../../../../imgs/sql-query-optimization-guide/not-executing-delete.avif" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="" src="../../../../imgs/sql-query-optimization-guide/not-executing-delete.avif" /></a></p>
+<h4 id="_57">警告</h4>
+<p>虽然这种方法可能更快，但它涉及数据库中的几个操作，可能会阻止底层表的正常功能。请仔细了解是否可以执行整个过程同时保持正常的数据库功能。此外，请注意，如果您有引用约束（例如外键指向表中某些键），则此解决方法将不起作用。</p>
+<h4 id="_58">黄金法则</h4>
+<p>在数据库负载具有易于预测的使用模式的情况下，上述解决方法是理想的。在流量低峰期间（或根本没有流量时）执行该过程将提供最佳的 <code>DELETE</code> 性能，同时最大限度地减少整个数据库功能的中断。</p>
+<h2 id="_59">总结</h2>
+<p>优化 SQL 语句可能是一项繁琐的任务：您需要深入了解数据库结构和要优化的工作负载类型才能获得良好的结果。此外，在优化特定工作负载（例如 <code>INSERT</code> 语句）时，您可能会影响具有不同访问模式（如 <code>SELECT</code> 或 <code>DELETE</code>）的其他查询的性能。</p>
+<p>要全面了解您的数据资产和支持结构，了解性能变化并获得自动的、AI 辅助的 SQL 优化建议，您可以使用 <a href="https://www.eversql.com/?utm_medium=organic&amp;utm_source=ext_blog&amp;utm_content=aivensqloptimization">Aiven 的 EverSQL</a>。EverSQL 传感器可安装在任何 PostgreSQL 和 MySQL 数据库上，让您监控缓慢的查询并获得性能见解。人工智能驱动的引擎会分析缓慢的 SQL 语句和现有的支持数据结构，并提供索引建议和 SQL 重写建议，以提高性能。</p>
+<blockquote>
+<p>作者：Francesco Tisiot<br>
+原文：<a href="https://aiven.io/developer/sql-query-optimization-guide">https://aiven.io/developer/sql-query-optimization-guide</a></p>
+</blockquote>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>
