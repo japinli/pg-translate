@@ -203,3 +203,6 @@ DROP TABLE page_hits_2025_04_20;
 - 将数据复制到 Iceberg，以便于报告和长期归档。
 - 以理想的间隔删除分区。
 - 持续从 PostgreSQL 查询归档数据。
+
+> 作者：Craig Kerstiens<br>
+> 原文：https://www.crunchydata.com/blog/archive-postgres-partitions-to-iceberg#now-drop-the-older-postgres-partition
